@@ -8,13 +8,6 @@
 
 #include <Refresh.h>
 
-typedef struct Vertex
-{
-	float x, y;
-	float u, v;
-	uint32_t color;
-} Vertex;
-
 int main(int argc, char *argv[])
 {
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) < 0)
