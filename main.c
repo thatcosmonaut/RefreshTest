@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 	doNothingColorTargetDescription.format = REFRESH_SURFACEFORMAT_R8G8B8A8;
 	doNothingColorTargetDescription.loadOp = REFRESH_LOADOP_CLEAR;
 	doNothingColorTargetDescription.storeOp = REFRESH_STOREOP_STORE;
-	doNothingColorTargetDescription.multisampleCount = 0;
+	doNothingColorTargetDescription.multisampleCount = REFRESH_SAMPLECOUNT_1;
 
 	REFRESH_RenderPassCreateInfo doNothingPassCreateInfo;
 	doNothingPassCreateInfo.colorTargetCount = 1;
