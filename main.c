@@ -1,9 +1,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #define SDL_MAIN_HANDLED
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #include <Refresh.h>
 
@@ -53,7 +54,7 @@ int main(int argc, char *argv[])
     REFRESH_ColorTargetDescription doNothingColorTargetDescription;
     doNothingColorTargetDescription.format = REFRESH_SURFACEFORMAT_R8G8B8A8;
     doNothingColorTargetDescription.loadOp = REFRESH_LOADOP_CLEAR;
-    doNothingColorTargetDescription.storeOp = REFRESH_STOREOP_DONT_CARE;
+    doNothingColorTargetDescription.storeOp = REFRESH_STOREOP_STORE;
     doNothingColorTargetDescription.multisampleCount = 0;
 
     REFRESH_RenderPassCreateInfo doNothingPassCreateInfo;
