@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 	mainColorTargetTextureSlice.texture = mainColorTargetTexture;
 	mainColorTargetTextureSlice.layer = 0;
 
-	REFRESH_ColorTarget *mainColorTarget = REFRESH_CreateColorTarget(device, REFRESH_SAMPLECOUNT_1, mainColorTargetTextureSlice);
+	REFRESH_ColorTarget *mainColorTarget = REFRESH_CreateColorTarget(device, REFRESH_SAMPLECOUNT_1, &mainColorTargetTextureSlice);
 
 	/* Define Framebuffer */
 	REFRESH_FramebufferCreateInfo framebufferCreateInfo;
@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
 
 			REFRESH_EndRenderPass(device);
 
-			REFRESH_PreparePresent(device, mainColorTargetTexture, NULL, NULL);
+			REFRESH_QueuePresent(device, &mainColorTargetTextureSlice, NULL, NULL);
 			REFRESH_Submit(device);
 		}
 	}
