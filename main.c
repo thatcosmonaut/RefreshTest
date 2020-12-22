@@ -26,11 +26,18 @@ int main(int argc, char *argv[])
 	const int windowWidth = 1280;
 	const int windowHeight = 720;
 
-	SDL_Window *window = SDL_CreateWindow("Refresh Test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowWidth, windowHeight, SDL_WINDOW_VULKAN);
+	SDL_Window *window = SDL_CreateWindow(
+		"Refresh Test",
+		SDL_WINDOWPOS_UNDEFINED,
+		SDL_WINDOWPOS_UNDEFINED,
+		windowWidth,
+		windowHeight,
+		SDL_WINDOW_VULKAN
+	);
 
 	REFRESH_PresentationParameters presentationParameters;
 	presentationParameters.deviceWindowHandle = window;
-    presentationParameters.presentMode = REFRESH_PRESENTMODE_MAILBOX;
+	presentationParameters.presentMode = REFRESH_PRESENTMODE_MAILBOX;
 
 	REFRESH_Device *device = REFRESH_CreateDevice(&presentationParameters, 1);
 
@@ -42,54 +49,54 @@ int main(int argc, char *argv[])
 	uint64_t currentTime = SDL_GetPerformanceCounter();
 	double accumulator = 0.0;
 
-    REFRESH_Rect renderArea;
-    renderArea.x = 0;
-    renderArea.y = 0;
-    renderArea.w = windowWidth;
-    renderArea.h = windowHeight;
+	REFRESH_Rect renderArea;
+	renderArea.x = 0;
+	renderArea.y = 0;
+	renderArea.w = windowWidth;
+	renderArea.h = windowHeight;
 
-    /* state */
+	/* state */
 
 	/* Define RenderPass */
-    REFRESH_ColorTargetDescription doNothingColorTargetDescription;
-    doNothingColorTargetDescription.format = REFRESH_SURFACEFORMAT_R8G8B8A8;
-    doNothingColorTargetDescription.loadOp = REFRESH_LOADOP_CLEAR;
-    doNothingColorTargetDescription.storeOp = REFRESH_STOREOP_STORE;
-    doNothingColorTargetDescription.multisampleCount = 0;
+	REFRESH_ColorTargetDescription doNothingColorTargetDescription;
+	doNothingColorTargetDescription.format = REFRESH_SURFACEFORMAT_R8G8B8A8;
+	doNothingColorTargetDescription.loadOp = REFRESH_LOADOP_CLEAR;
+	doNothingColorTargetDescription.storeOp = REFRESH_STOREOP_STORE;
+	doNothingColorTargetDescription.multisampleCount = 0;
 
-    REFRESH_RenderPassCreateInfo doNothingPassCreateInfo;
-    doNothingPassCreateInfo.colorTargetCount = 1;
-    doNothingPassCreateInfo.colorTargetDescriptions = &doNothingColorTargetDescription;
-    doNothingPassCreateInfo.depthTargetDescription = NULL;
+	REFRESH_RenderPassCreateInfo doNothingPassCreateInfo;
+	doNothingPassCreateInfo.colorTargetCount = 1;
+	doNothingPassCreateInfo.colorTargetDescriptions = &doNothingColorTargetDescription;
+	doNothingPassCreateInfo.depthTargetDescription = NULL;
 
-    REFRESH_RenderPass *doNothingRenderPass = REFRESH_CreateRenderPass(device, &doNothingPassCreateInfo);
+	REFRESH_RenderPass *doNothingRenderPass = REFRESH_CreateRenderPass(device, &doNothingPassCreateInfo);
 
 	/* Define ColorTarget */
 
-    REFRESH_Texture *mainColorTargetTexture = REFRESH_CreateTexture2D(device, REFRESH_SURFACEFORMAT_R8G8B8A8, windowWidth, windowHeight, 1, 1);
+	REFRESH_Texture *mainColorTargetTexture = REFRESH_CreateTexture2D(device, REFRESH_SURFACEFORMAT_R8G8B8A8, windowWidth, windowHeight, 1, 1);
 
-    REFRESH_TextureSlice mainColorTargetTextureSlice;
-    mainColorTargetTextureSlice.texture = mainColorTargetTexture;
-    mainColorTargetTextureSlice.layer = 0;
+	REFRESH_TextureSlice mainColorTargetTextureSlice;
+	mainColorTargetTextureSlice.texture = mainColorTargetTexture;
+	mainColorTargetTextureSlice.layer = 0;
 
-    REFRESH_ColorTarget *mainColorTarget = REFRESH_CreateColorTarget(device, REFRESH_SAMPLECOUNT_1, mainColorTargetTextureSlice);
+	REFRESH_ColorTarget *mainColorTarget = REFRESH_CreateColorTarget(device, REFRESH_SAMPLECOUNT_1, mainColorTargetTextureSlice);
 
 	/* Define Framebuffer */
-    REFRESH_FramebufferCreateInfo framebufferCreateInfo;
-    framebufferCreateInfo.width = 1280;
-    framebufferCreateInfo.height = 720;
-    framebufferCreateInfo.colorTargetCount = 1;
-    framebufferCreateInfo.pColorTargets = &mainColorTarget;
-    framebufferCreateInfo.pDepthTarget = NULL;
+	REFRESH_FramebufferCreateInfo framebufferCreateInfo;
+	framebufferCreateInfo.width = 1280;
+	framebufferCreateInfo.height = 720;
+	framebufferCreateInfo.colorTargetCount = 1;
+	framebufferCreateInfo.pColorTargets = &mainColorTarget;
+	framebufferCreateInfo.pDepthTarget = NULL;
 	framebufferCreateInfo.renderPass = doNothingRenderPass;
 
-    REFRESH_Framebuffer *mainFramebuffer = REFRESH_CreateFramebuffer(device, &framebufferCreateInfo);
+	REFRESH_Framebuffer *mainFramebuffer = REFRESH_CreateFramebuffer(device, &framebufferCreateInfo);
 
-    REFRESH_Color clearColor;
-    clearColor.r = 100;
-    clearColor.g = 149;
-    clearColor.b = 237;
-    clearColor.a = 255;
+	REFRESH_Color clearColor;
+	clearColor.r = 100;
+	clearColor.g = 149;
+	clearColor.b = 237;
+	clearColor.a = 255;
 
 	while (!quit)
 	{
@@ -127,20 +134,20 @@ int main(int argc, char *argv[])
 		{
 			// Draw here!
 
-            REFRESH_BeginRenderPass(
-                device,
-                doNothingRenderPass,
-                mainFramebuffer,
-                renderArea,
-                &clearColor,
-                1,
-                NULL
-            );
+			REFRESH_BeginRenderPass(
+				device,
+				doNothingRenderPass,
+				mainFramebuffer,
+				renderArea,
+				&clearColor,
+				1,
+				NULL
+			);
 
-            REFRESH_EndRenderPass(device);
+			REFRESH_EndRenderPass(device);
 
-            REFRESH_PreparePresent(device, mainColorTargetTexture, NULL, NULL);
-            REFRESH_Submit(device);
+			REFRESH_PreparePresent(device, mainColorTargetTexture, NULL, NULL);
+			REFRESH_Submit(device);
 		}
 	}
 
