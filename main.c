@@ -14,6 +14,11 @@ typedef struct Vertex
 	float u, v;
 } Vertex;
 
+typedef struct RaymarchUniforms
+{
+	float time;
+} RaymarchUniforms;
+
 int main(int argc, char *argv[])
 {
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) < 0)
@@ -109,6 +114,11 @@ int main(int argc, char *argv[])
 	uint64_t* offsets = SDL_malloc(sizeof(uint64_t));
 	offsets[0] = 0;
 
+	/* Uniforms struct */
+
+	RaymarchUniforms raymarchUniforms;
+	raymarchUniforms.time = 0;
+
 	/* Define RenderPass */
 
 	REFRESH_ColorTargetDescription mainColorTargetDescription;
@@ -197,10 +207,12 @@ int main(int argc, char *argv[])
 	REFRESH_ShaderStageState vertexShaderStageState;
 	vertexShaderStageState.shaderModule = passthroughVertexShaderModule;
 	vertexShaderStageState.entryPointName = "main";
+	vertexShaderStageState.uniformBufferSize = 0;
 
 	REFRESH_ShaderStageState fragmentShaderStageState;
 	fragmentShaderStageState.shaderModule = raymarchFragmentShaderModule;
 	fragmentShaderStageState.entryPointName = "main";
+	fragmentShaderStageState.uniformBufferSize = sizeof(RaymarchUniforms);
 
 	REFRESH_MultisampleState multisampleState;
 	multisampleState.multisampleCount = REFRESH_SAMPLECOUNT_1;
@@ -334,6 +346,9 @@ int main(int argc, char *argv[])
 				raymarchPipeline
 			);
 
+			raymarchUniforms.time = t;
+
+			REFRESH_PushFragmentShaderParams(device, &raymarchUniforms, 1);
 			REFRESH_BindVertexBuffers(device, 0, 1, &vertexBuffer, offsets);
 			REFRESH_DrawPrimitives(device, 0, 1);
 
