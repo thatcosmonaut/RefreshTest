@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 	REFRESH_Framebuffer *mainFramebuffer = REFRESH_CreateFramebuffer(device, &framebufferCreateInfo);
 
 	/* Define pipeline */
-	REFRESH_RenderTargetBlendState renderTargetBlendState;
+	REFRESH_ColorTargetBlendState renderTargetBlendState;
 	renderTargetBlendState.blendEnable = 0;
 	renderTargetBlendState.alphaBlendOp = 0;
 	renderTargetBlendState.colorBlendOp = 0;
@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
 
 			REFRESH_BindVertexBuffers(device, 0, 1, &vertexBuffer, offsets);
 			/* TODO: don't need pipeline or primitive type */
-			REFRESH_DrawPrimitives(device, raymarchPipeline, REFRESH_PRIMITIVETYPE_TRIANGLELIST, 0, 1);
+			REFRESH_DrawPrimitives(device, 0, 1);
 
 			REFRESH_EndRenderPass(device);
 
