@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
 	framebufferCreateInfo.height = 720;
 	framebufferCreateInfo.colorTargetCount = 1;
 	framebufferCreateInfo.pColorTargets = &mainColorTarget;
-	framebufferCreateInfo.pDepthTarget = NULL;
+	framebufferCreateInfo.pDepthStencilTarget = NULL;
 	framebufferCreateInfo.renderPass = mainRenderPass;
 
 	REFRESH_Framebuffer *mainFramebuffer = REFRESH_CreateFramebuffer(device, &framebufferCreateInfo);
@@ -335,7 +335,6 @@ int main(int argc, char *argv[])
 			);
 
 			REFRESH_BindVertexBuffers(device, 0, 1, &vertexBuffer, offsets);
-			/* TODO: don't need pipeline or primitive type */
 			REFRESH_DrawPrimitives(device, 0, 1);
 
 			REFRESH_EndRenderPass(device);
