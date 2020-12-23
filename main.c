@@ -91,17 +91,17 @@ int main(int argc, char *argv[])
 	vertices[0].u = 0;
 	vertices[0].v = 0;
 
-	vertices[1].x = -1;
-	vertices[1].y = 3;
+	vertices[1].x = 3;
+	vertices[1].y = -1;
 	vertices[1].z = 0;
-	vertices[1].u = 0;
-	vertices[1].v = 1;
+	vertices[1].u = 1;
+	vertices[1].v = 0;
 
-	vertices[2].x = 3;
-	vertices[2].y = -1;
+	vertices[2].x = -1;
+	vertices[2].y = 3;
 	vertices[2].z = 0;
-	vertices[2].u = 1;
-	vertices[2].v = 0;
+	vertices[2].u = 0;
+	vertices[2].v = 1;
 
 	REFRESH_Buffer* vertexBuffer = REFRESH_CreateVertexBuffer(device, sizeof(Vertex) * 3);
 	REFRESH_SetVertexBufferData(device, vertexBuffer, 0, vertices, 3, sizeof(Vertex));
@@ -250,9 +250,9 @@ int main(int argc, char *argv[])
 
 	REFRESH_Viewport viewport;
 	viewport.x = 0;
-	viewport.y = (float)windowHeight;
+	viewport.y = 0;
 	viewport.w = (float)windowWidth;
-	viewport.h = -(float)windowHeight;
+	viewport.h = (float)windowHeight;
 	viewport.minDepth = 0;
 	viewport.maxDepth = 1;
 
