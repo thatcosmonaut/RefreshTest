@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 
 	/* Compile shaders */
 
-	SDL_RWops* file = SDL_RWFromFile("Debug/passthrough_vert.spirv", "rb");
+	SDL_RWops* file = SDL_RWFromFile("passthrough_vert.spirv", "rb");
 	Sint64 shaderCodeSize = SDL_RWsize(file);
 	uint32_t* byteCode = SDL_malloc(sizeof(uint32_t) * shaderCodeSize);
 	SDL_RWread(file, byteCode, sizeof(uint32_t), shaderCodeSize);
@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 
 	REFRESH_ShaderModule* passthroughVertexShaderModule = REFRESH_CreateShaderModule(device, &passthroughVertexShaderModuleCreateInfo);
 
-	file = SDL_RWFromFile("Debug/raymarch_frag.spirv", "rb");
+	file = SDL_RWFromFile("raymarch_frag.spirv", "rb");
 	shaderCodeSize = SDL_RWsize(file);
 	byteCode = SDL_realloc(byteCode, sizeof(uint32_t) * shaderCodeSize);
 	SDL_RWread(file, byteCode, sizeof(uint32_t), shaderCodeSize);
@@ -97,11 +97,11 @@ int main(int argc, char *argv[])
 	vertices[1].u = 0;
 	vertices[1].v = 1;
 
-	vertices[1].x = 3;
-	vertices[1].y = -1;
-	vertices[1].z = 0;
-	vertices[1].u = 1;
-	vertices[1].v = 0;
+	vertices[2].x = 3;
+	vertices[2].y = -1;
+	vertices[2].z = 0;
+	vertices[2].u = 1;
+	vertices[2].v = 0;
 
 	REFRESH_Buffer* vertexBuffer = REFRESH_CreateVertexBuffer(device, sizeof(Vertex) * 3);
 	REFRESH_SetVertexBufferData(device, vertexBuffer, 0, vertices, 3, sizeof(Vertex));
@@ -151,7 +151,11 @@ int main(int argc, char *argv[])
 	renderTargetBlendState.blendEnable = 0;
 	renderTargetBlendState.alphaBlendOp = 0;
 	renderTargetBlendState.colorBlendOp = 0;
-	renderTargetBlendState.colorWriteMask = 0;
+	renderTargetBlendState.colorWriteMask =
+		REFRESH_COLORCOMPONENT_R_BIT |
+		REFRESH_COLORCOMPONENT_G_BIT |
+		REFRESH_COLORCOMPONENT_B_BIT |
+		REFRESH_COLORCOMPONENT_A_BIT;
 	renderTargetBlendState.dstAlphaBlendFactor = 0;
 	renderTargetBlendState.dstColorBlendFactor = 0;
 	renderTargetBlendState.srcAlphaBlendFactor = 0;
@@ -246,9 +250,9 @@ int main(int argc, char *argv[])
 
 	REFRESH_Viewport viewport;
 	viewport.x = 0;
-	viewport.y = 0;
+	viewport.y = (float)windowHeight;
 	viewport.w = (float)windowWidth;
-	viewport.h = (float)windowHeight;
+	viewport.h = -(float)windowHeight;
 	viewport.minDepth = 0;
 	viewport.maxDepth = 1;
 
@@ -324,7 +328,7 @@ int main(int argc, char *argv[])
 				1,
 				NULL
 			);
-			
+
 			REFRESH_BindGraphicsPipeline(
 				device,
 				raymarchPipeline
