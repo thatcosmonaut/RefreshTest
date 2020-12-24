@@ -16,7 +16,8 @@ typedef struct Vertex
 
 typedef struct RaymarchUniforms
 {
-	float time;
+	float time, padding;
+	float resolutionX, resolutionY;
 } RaymarchUniforms;
 
 int main(int argc, char *argv[])
@@ -61,7 +62,7 @@ int main(int argc, char *argv[])
 
 	/* Compile shaders */
 
-	SDL_RWops* file = SDL_RWFromFile("passthrough_vert.spirv", "rb");
+	SDL_RWops* file = SDL_RWFromFile("passthrough_vert.spv", "rb");
 	Sint64 shaderCodeSize = SDL_RWsize(file);
 	uint32_t* byteCode = SDL_malloc(sizeof(uint32_t) * shaderCodeSize);
 	SDL_RWread(file, byteCode, sizeof(uint32_t), shaderCodeSize);
@@ -73,7 +74,7 @@ int main(int argc, char *argv[])
 
 	REFRESH_ShaderModule* passthroughVertexShaderModule = REFRESH_CreateShaderModule(device, &passthroughVertexShaderModuleCreateInfo);
 
-	file = SDL_RWFromFile("raymarch_frag.spirv", "rb");
+	file = SDL_RWFromFile("seascape.spv", "rb");
 	shaderCodeSize = SDL_RWsize(file);
 	byteCode = SDL_realloc(byteCode, sizeof(uint32_t) * shaderCodeSize);
 	SDL_RWread(file, byteCode, sizeof(uint32_t), shaderCodeSize);
@@ -94,19 +95,19 @@ int main(int argc, char *argv[])
 	vertices[0].y = -1;
 	vertices[0].z = 0;
 	vertices[0].u = 0;
-	vertices[0].v = 0;
+	vertices[0].v = 1;
 
 	vertices[1].x = 3;
 	vertices[1].y = -1;
 	vertices[1].z = 0;
 	vertices[1].u = 1;
-	vertices[1].v = 0;
+	vertices[1].v = 1;
 
 	vertices[2].x = -1;
 	vertices[2].y = 3;
 	vertices[2].z = 0;
 	vertices[2].u = 0;
-	vertices[2].v = 1;
+	vertices[2].v = 0;
 
 	REFRESH_Buffer* vertexBuffer = REFRESH_CreateVertexBuffer(device, sizeof(Vertex) * 3);
 	REFRESH_SetVertexBufferData(device, vertexBuffer, 0, vertices, 3, sizeof(Vertex));
@@ -118,6 +119,9 @@ int main(int argc, char *argv[])
 
 	RaymarchUniforms raymarchUniforms;
 	raymarchUniforms.time = 0;
+	raymarchUniforms.padding = 0;
+	raymarchUniforms.resolutionX = (float)windowWidth;
+	raymarchUniforms.resolutionY = (float)windowHeight;
 
 	/* Define RenderPass */
 
