@@ -223,9 +223,7 @@ int main(int argc, char *argv[])
 	multisampleState.sampleMask = 0;
 
 	REFRESH_PipelineLayoutCreateInfo pipelineLayoutCreateInfo;
-	pipelineLayoutCreateInfo.vertexSamplerBindings = NULL;
 	pipelineLayoutCreateInfo.vertexSamplerBindingCount = 0;
-	pipelineLayoutCreateInfo.fragmentSamplerBindings = NULL;
 	pipelineLayoutCreateInfo.fragmentSamplerBindingCount = 0;
 
 	REFRESH_RasterizerState rasterizerState;
