@@ -122,8 +122,6 @@ int main(int argc, char *argv[])
 
 	REFRESH_Image_Free(woodTexturePixels);
 
-	REFRESH_Submit(device);
-
 	uint8_t *noiseTexturePixels = REFRESH_Image_Load(
 		"noise.png",
 		&textureWidth,
