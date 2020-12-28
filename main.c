@@ -455,7 +455,7 @@ int main(int argc, char *argv[])
 
 			REFRESH_PushFragmentShaderParams(device, &raymarchUniforms, 1);
 			REFRESH_BindVertexBuffers(device, 0, 1, &vertexBuffer, offsets);
-			REFRESH_SetFragmentSamplers(device, raymarchPipeline, sampleTextures, sampleSamplers);
+			REFRESH_SetFragmentSamplers(device, sampleTextures, sampleSamplers);
 			REFRESH_DrawPrimitives(device, 0, 1);
 
 			REFRESH_EndRenderPass(device);
