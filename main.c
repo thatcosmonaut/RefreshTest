@@ -476,6 +476,9 @@ int main(int argc, char *argv[])
 
 	// todo: free vertex buffers (and everything)
 
+	REFRESH_AddDisposeTexture(device, woodTexture);
+	REFRESH_AddDisposeTexture(device, noiseTexture);
+
 	REFRESH_DestroyDevice(device);
 
 	SDL_DestroyWindow(window);
