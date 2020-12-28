@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 		textureWidth,
 		textureHeight,
 		1,
-		0
+		REFRESH_TEXTUREUSAGE_FRAGMENT_SAMPLER_BIT
 	);
 
 	REFRESH_SetTextureData2D(
@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
 		textureWidth,
 		textureHeight,
 		1,
-		0
+		REFRESH_TEXTUREUSAGE_FRAGMENT_SAMPLER_BIT
 	);
 
 	REFRESH_SetTextureData2D(
@@ -206,13 +206,24 @@ int main(int argc, char *argv[])
 
 	/* Define ColorTarget */
 
-	REFRESH_Texture *mainColorTargetTexture = REFRESH_CreateTexture2D(device, REFRESH_SURFACEFORMAT_R8G8B8A8, windowWidth, windowHeight, 1, 1);
+	REFRESH_Texture *mainColorTargetTexture = REFRESH_CreateTexture2D(
+		device, 
+		REFRESH_SURFACEFORMAT_R8G8B8A8, 
+		windowWidth, 
+		windowHeight, 
+		1,
+		REFRESH_TEXTUREUSAGE_COLOR_TARGET_BIT
+	);
 
 	REFRESH_TextureSlice mainColorTargetTextureSlice;
 	mainColorTargetTextureSlice.texture = mainColorTargetTexture;
 	mainColorTargetTextureSlice.layer = 0;
 
-	REFRESH_ColorTarget *mainColorTarget = REFRESH_CreateColorTarget(device, REFRESH_SAMPLECOUNT_1, &mainColorTargetTextureSlice);
+	REFRESH_ColorTarget *mainColorTarget = REFRESH_CreateColorTarget(
+		device, 
+		REFRESH_SAMPLECOUNT_1, 
+		&mainColorTargetTextureSlice
+	);
 
 	/* Define Framebuffer */
 
@@ -451,7 +462,7 @@ int main(int argc, char *argv[])
 				raymarchPipeline
 			);
 
-			raymarchUniforms.time = t;
+			raymarchUniforms.time = (float)t;
 
 			REFRESH_PushFragmentShaderParams(device, &raymarchUniforms, 1);
 			REFRESH_BindVertexBuffers(device, 0, 1, &vertexBuffer, offsets);
