@@ -7,6 +7,7 @@
 #include <SDL.h>
 
 #include <Refresh.h>
+#include <Refresh_Image.h>
 
 typedef struct Vertex
 {
@@ -74,7 +75,7 @@ int main(int argc, char *argv[])
 
 	REFRESH_ShaderModule* passthroughVertexShaderModule = REFRESH_CreateShaderModule(device, &passthroughVertexShaderModuleCreateInfo);
 
-	file = SDL_RWFromFile("seascape.spv", "rb");
+	file = SDL_RWFromFile("hexagon_grid.spv", "rb");
 	shaderCodeSize = SDL_RWsize(file);
 	byteCode = SDL_realloc(byteCode, sizeof(uint32_t) * shaderCodeSize);
 	SDL_RWread(file, byteCode, sizeof(uint32_t), shaderCodeSize);
@@ -87,6 +88,71 @@ int main(int argc, char *argv[])
 	REFRESH_ShaderModule* raymarchFragmentShaderModule = REFRESH_CreateShaderModule(device, &raymarchFragmentShaderModuleCreateInfo);
 
 	SDL_free(byteCode);
+
+	/* Load textures */
+
+	int32_t textureWidth, textureHeight, numChannels;
+	uint8_t *woodTexturePixels = REFRESH_Image_Load(
+		"woodgrain.png",
+		&textureWidth,
+		&textureHeight,
+		&numChannels
+	);
+
+	REFRESH_Texture *woodTexture = REFRESH_CreateTexture2D(
+		device,
+		REFRESH_SURFACEFORMAT_R8G8B8A8,
+		textureWidth,
+		textureHeight,
+		1,
+		0
+	);
+
+	REFRESH_SetTextureData2D(
+		device,
+		woodTexture,
+		0,
+		0,
+		textureWidth,
+		textureHeight,
+		0,
+		woodTexturePixels,
+		textureWidth * textureHeight * 4
+	);
+
+	REFRESH_Image_Free(woodTexturePixels);
+
+	REFRESH_Submit(device);
+
+	uint8_t *noiseTexturePixels = REFRESH_Image_Load(
+		"noise.png",
+		&textureWidth,
+		&textureHeight,
+		&numChannels
+	);
+
+	REFRESH_Texture *noiseTexture = REFRESH_CreateTexture2D(
+		device,
+		REFRESH_SURFACEFORMAT_R8G8B8A8,
+		textureWidth,
+		textureHeight,
+		1,
+		0
+	);
+
+	REFRESH_SetTextureData2D(
+		device,
+		noiseTexture,
+		0,
+		0,
+		textureWidth,
+		textureHeight,
+		0,
+		noiseTexturePixels,
+		textureWidth * textureHeight * 4
+	);
+
+	REFRESH_Image_Free(noiseTexturePixels);
 
 	/* Define vertex buffer */
 
@@ -224,7 +290,7 @@ int main(int argc, char *argv[])
 
 	REFRESH_PipelineLayoutCreateInfo pipelineLayoutCreateInfo;
 	pipelineLayoutCreateInfo.vertexSamplerBindingCount = 0;
-	pipelineLayoutCreateInfo.fragmentSamplerBindingCount = 0;
+	pipelineLayoutCreateInfo.fragmentSamplerBindingCount = 2;
 
 	REFRESH_RasterizerState rasterizerState;
 	rasterizerState.cullMode = REFRESH_CULLMODE_BACK;
@@ -297,6 +363,43 @@ int main(int argc, char *argv[])
 	clearColor.b = 237;
 	clearColor.a = 255;
 
+	/* Sampling */
+
+	REFRESH_SamplerStateCreateInfo samplerStateCreateInfo;
+	samplerStateCreateInfo.addressModeU = REFRESH_SAMPLERADDRESSMODE_REPEAT;
+	samplerStateCreateInfo.addressModeV = REFRESH_SAMPLERADDRESSMODE_REPEAT;
+	samplerStateCreateInfo.addressModeW = REFRESH_SAMPLERADDRESSMODE_REPEAT;
+	samplerStateCreateInfo.anisotropyEnable = 0;
+	samplerStateCreateInfo.borderColor = REFRESH_BORDERCOLOR_FLOAT_OPAQUE_BLACK;
+	samplerStateCreateInfo.compareEnable = 0;
+	samplerStateCreateInfo.compareOp = REFRESH_COMPAREOP_NEVER;
+	samplerStateCreateInfo.magFilter = REFRESH_SAMPLERFILTER_LINEAR;
+	samplerStateCreateInfo.maxAnisotropy = 0;
+	samplerStateCreateInfo.maxLod = 1;
+	samplerStateCreateInfo.minFilter = REFRESH_SAMPLERFILTER_LINEAR;
+	samplerStateCreateInfo.minLod = 1;
+	samplerStateCreateInfo.mipLodBias = 1;
+	samplerStateCreateInfo.mipmapMode = REFRESH_SAMPLERMIPMAPMODE_LINEAR;
+
+	REFRESH_Sampler *sampler = REFRESH_CreateSampler(
+		device,
+		&samplerStateCreateInfo
+	);
+
+	REFRESH_Texture* sampleTextures[2];
+	sampleTextures[0] = woodTexture;
+	sampleTextures[1] = noiseTexture;
+
+	REFRESH_Sampler* sampleSamplers[2];
+	sampleSamplers[0] = sampler;
+	sampleSamplers[1] = sampler;
+
+	REFRESH_Rect flip;
+	flip.x = 0;
+	flip.y = windowHeight;
+	flip.w = windowWidth;
+	flip.h = -windowHeight;
+
 	while (!quit)
 	{
 		SDL_Event event;
@@ -352,11 +455,12 @@ int main(int argc, char *argv[])
 
 			REFRESH_PushFragmentShaderParams(device, &raymarchUniforms, 1);
 			REFRESH_BindVertexBuffers(device, 0, 1, &vertexBuffer, offsets);
+			REFRESH_SetFragmentSamplers(device, raymarchPipeline, sampleTextures, sampleSamplers);
 			REFRESH_DrawPrimitives(device, 0, 1);
 
 			REFRESH_EndRenderPass(device);
 
-			REFRESH_QueuePresent(device, &mainColorTargetTextureSlice, NULL, NULL);
+			REFRESH_QueuePresent(device, &mainColorTargetTextureSlice, NULL, &flip);
 			REFRESH_Submit(device);
 		}
 	}
