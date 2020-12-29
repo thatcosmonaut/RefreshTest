@@ -427,6 +427,9 @@ int main(int argc, char *argv[])
 	flip.w = windowWidth;
 	flip.h = -windowHeight;
 
+	uint8_t screenshotKey = 0;
+	uint8_t *screenshotPixels = SDL_malloc(sizeof(uint8_t) * windowWidth * windowHeight * 4);
+
 	while (!quit)
 	{
 		SDL_Event event;
@@ -457,6 +460,24 @@ int main(int argc, char *argv[])
 
 			t += dt;
 			accumulator -= dt;
+
+			const uint8_t *keyboardState = SDL_GetKeyboardState(NULL);
+
+			if (keyboardState[SDL_SCANCODE_S])
+			{
+				if (screenshotKey == 1)
+				{
+					screenshotKey = 2;
+				}
+				else
+				{
+					screenshotKey = 1;
+				}
+			}
+			else
+			{
+				screenshotKey = 0;
+			}
 		}
 
 		if (updateThisLoop && !quit)
@@ -488,12 +509,25 @@ int main(int argc, char *argv[])
 			REFRESH_Clear(device, &renderArea, REFRESH_CLEAROPTIONS_DEPTH | REFRESH_CLEAROPTIONS_STENCIL, NULL, 0, 0.5f, 10);
 			REFRESH_EndRenderPass(device);
 
+			if (screenshotKey == 1)
+			{
+				SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "screenshot!");
+				REFRESH_GetTextureData2D(device, mainColorTargetTexture, 0, 0, windowWidth, windowHeight, 0, screenshotPixels);
+			}
+
 			REFRESH_QueuePresent(device, &mainColorTargetTextureSlice, NULL, &flip);
 			REFRESH_Submit(device);
+
+			if (screenshotKey == 1)
+			{
+				REFRESH_Image_SavePNG("screenshot.png", windowWidth, windowHeight, screenshotPixels);
+			}
 		}
 	}
 
 	// todo: free vertex buffers (and everything)
+
+	SDL_free(screenshotPixels);
 
 	REFRESH_AddDisposeColorTarget(device, mainColorTarget);
 	REFRESH_AddDisposeDepthStencilTarget(device, mainDepthStencilTarget);
