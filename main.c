@@ -195,10 +195,17 @@ int main(int argc, char *argv[])
 	mainColorTargetDescription.storeOp = REFRESH_STOREOP_STORE;
 	mainColorTargetDescription.multisampleCount = REFRESH_SAMPLECOUNT_1;
 
+	REFRESH_DepthStencilTargetDescription mainDepthStencilTargetDescription;
+	mainDepthStencilTargetDescription.depthFormat = REFRESH_DEPTHFORMAT_D32_SFLOAT_S8_UINT;
+	mainDepthStencilTargetDescription.loadOp = REFRESH_LOADOP_CLEAR;
+	mainDepthStencilTargetDescription.storeOp = REFRESH_STOREOP_DONT_CARE;
+	mainDepthStencilTargetDescription.stencilLoadOp = REFRESH_LOADOP_DONT_CARE;
+	mainDepthStencilTargetDescription.stencilStoreOp = REFRESH_STOREOP_DONT_CARE;
+
 	REFRESH_RenderPassCreateInfo mainRenderPassCreateInfo;
 	mainRenderPassCreateInfo.colorTargetCount = 1;
 	mainRenderPassCreateInfo.colorTargetDescriptions = &mainColorTargetDescription;
-	mainRenderPassCreateInfo.depthTargetDescription = NULL;
+	mainRenderPassCreateInfo.depthTargetDescription = &mainDepthStencilTargetDescription;
 
 	REFRESH_RenderPass *mainRenderPass = REFRESH_CreateRenderPass(device, &mainRenderPassCreateInfo);
 
@@ -223,6 +230,13 @@ int main(int argc, char *argv[])
 		&mainColorTargetTextureSlice
 	);
 
+	REFRESH_DepthStencilTarget *mainDepthStencilTarget = REFRESH_CreateDepthStencilTarget(
+		device,
+		windowWidth,
+		windowHeight,
+		REFRESH_DEPTHFORMAT_D32_SFLOAT_S8_UINT
+	);
+
 	/* Define Framebuffer */
 
 	REFRESH_FramebufferCreateInfo framebufferCreateInfo;
@@ -230,7 +244,7 @@ int main(int argc, char *argv[])
 	framebufferCreateInfo.height = 720;
 	framebufferCreateInfo.colorTargetCount = 1;
 	framebufferCreateInfo.pColorTargets = &mainColorTarget;
-	framebufferCreateInfo.pDepthStencilTarget = NULL;
+	framebufferCreateInfo.pDepthStencilTarget = mainDepthStencilTarget;
 	framebufferCreateInfo.renderPass = mainRenderPass;
 
 	REFRESH_Framebuffer *mainFramebuffer = REFRESH_CreateFramebuffer(device, &framebufferCreateInfo);
@@ -372,6 +386,10 @@ int main(int argc, char *argv[])
 	clearColor.b = 237;
 	clearColor.a = 255;
 
+	REFRESH_DepthStencilValue depthStencilClear;
+	depthStencilClear.depth = 1.0f;
+	depthStencilClear.stencil = 0.0f;
+
 	/* Sampling */
 
 	REFRESH_SamplerStateCreateInfo samplerStateCreateInfo;
@@ -452,7 +470,7 @@ int main(int argc, char *argv[])
 				renderArea,
 				&clearColor,
 				1,
-				NULL
+				&depthStencilClear
 			);
 
 			REFRESH_BindGraphicsPipeline(
@@ -477,6 +495,7 @@ int main(int argc, char *argv[])
 	// todo: free vertex buffers (and everything)
 
 	REFRESH_AddDisposeColorTarget(device, mainColorTarget);
+	REFRESH_AddDisposeDepthStencilTarget(device, mainDepthStencilTarget);
 
 	REFRESH_AddDisposeTexture(device, woodTexture);
 	REFRESH_AddDisposeTexture(device, noiseTexture);
