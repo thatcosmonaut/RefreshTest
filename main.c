@@ -485,6 +485,7 @@ int main(int argc, char *argv[])
 			REFRESH_SetFragmentSamplers(device, sampleTextures, sampleSamplers);
 			REFRESH_DrawPrimitives(device, 0, 1, 0, fragmentParamOffset);
 
+			REFRESH_Clear(device, &renderArea, REFRESH_CLEAROPTIONS_DEPTH | REFRESH_CLEAROPTIONS_STENCIL, NULL, 0, 0.5f, 10);
 			REFRESH_EndRenderPass(device);
 
 			REFRESH_QueuePresent(device, &mainColorTargetTextureSlice, NULL, &flip);
