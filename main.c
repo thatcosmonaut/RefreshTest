@@ -205,10 +205,10 @@ int main(int argc, char *argv[])
 	/* Define ColorTarget */
 
 	REFRESH_Texture *mainColorTargetTexture = REFRESH_CreateTexture2D(
-		device, 
-		REFRESH_SURFACEFORMAT_R8G8B8A8, 
-		windowWidth, 
-		windowHeight, 
+		device,
+		REFRESH_SURFACEFORMAT_R8G8B8A8,
+		windowWidth,
+		windowHeight,
 		1,
 		REFRESH_TEXTUREUSAGE_COLOR_TARGET_BIT
 	);
@@ -218,8 +218,8 @@ int main(int argc, char *argv[])
 	mainColorTargetTextureSlice.layer = 0;
 
 	REFRESH_ColorTarget *mainColorTarget = REFRESH_CreateColorTarget(
-		device, 
-		REFRESH_SAMPLECOUNT_1, 
+		device,
+		REFRESH_SAMPLECOUNT_1,
 		&mainColorTargetTextureSlice
 	);
 
@@ -476,8 +476,19 @@ int main(int argc, char *argv[])
 
 	// todo: free vertex buffers (and everything)
 
+	REFRESH_AddDisposeColorTarget(device, mainColorTarget);
+
 	REFRESH_AddDisposeTexture(device, woodTexture);
 	REFRESH_AddDisposeTexture(device, noiseTexture);
+	REFRESH_AddDisposeTexture(device, mainColorTargetTexture);
+	REFRESH_AddDisposeSampler(device, sampler);
+
+	REFRESH_AddDisposeVertexBuffer(device, vertexBuffer);
+
+	REFRESH_AddDisposeGraphicsPipeline(device, raymarchPipeline);
+
+	REFRESH_AddDisposeShaderModule(device, passthroughVertexShaderModule);
+	REFRESH_AddDisposeShaderModule(device, raymarchFragmentShaderModule);
 
 	REFRESH_DestroyDevice(device);
 
