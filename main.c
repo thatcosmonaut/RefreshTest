@@ -462,10 +462,10 @@ int main(int argc, char *argv[])
 
 			raymarchUniforms.time = (float)t;
 
-			REFRESH_PushFragmentShaderParams(device, &raymarchUniforms, 1);
+			uint32_t fragmentParamOffset = REFRESH_PushFragmentShaderParams(device, &raymarchUniforms, 1);
 			REFRESH_BindVertexBuffers(device, 0, 1, &vertexBuffer, offsets);
 			REFRESH_SetFragmentSamplers(device, sampleTextures, sampleSamplers);
-			REFRESH_DrawPrimitives(device, 0, 1);
+			REFRESH_DrawPrimitives(device, 0, 1, 0, fragmentParamOffset);
 
 			REFRESH_EndRenderPass(device);
 
@@ -489,6 +489,8 @@ int main(int argc, char *argv[])
 
 	REFRESH_AddDisposeShaderModule(device, passthroughVertexShaderModule);
 	REFRESH_AddDisposeShaderModule(device, raymarchFragmentShaderModule);
+
+	REFRESH_AddDisposeFramebuffer(device, mainFramebuffer);
 
 	REFRESH_DestroyDevice(device);
 
