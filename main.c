@@ -491,6 +491,7 @@ int main(int argc, char *argv[])
 	REFRESH_AddDisposeShaderModule(device, raymarchFragmentShaderModule);
 
 	REFRESH_AddDisposeFramebuffer(device, mainFramebuffer);
+	REFRESH_AddDisposeRenderPass(device, mainRenderPass);
 
 	REFRESH_DestroyDevice(device);
 
