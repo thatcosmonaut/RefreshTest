@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 		textureWidth,
 		textureHeight,
 		1,
-		REFRESH_TEXTUREUSAGE_FRAGMENT_SAMPLER_BIT
+		REFRESH_TEXTUREUSAGE_SAMPLER_BIT
 	);
 
 	REFRESH_SetTextureData2D(
@@ -135,7 +135,7 @@ int main(int argc, char *argv[])
 		textureWidth,
 		textureHeight,
 		1,
-		REFRESH_TEXTUREUSAGE_FRAGMENT_SAMPLER_BIT
+		REFRESH_TEXTUREUSAGE_SAMPLER_BIT
 	);
 
 	REFRESH_SetTextureData2D(
