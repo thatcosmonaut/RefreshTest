@@ -297,12 +297,12 @@ int main(int argc, char *argv[])
 	depthStencilState.minDepthBounds = 0.0f;
 	depthStencilState.stencilTestEnable = 0;
 
-	REFRESH_ShaderStageState vertexShaderStageState;
+	REFRESH_GraphicsShaderStageState vertexShaderStageState;
 	vertexShaderStageState.shaderModule = passthroughVertexShaderModule;
 	vertexShaderStageState.entryPointName = "main";
 	vertexShaderStageState.uniformBufferSize = 0;
 
-	REFRESH_ShaderStageState fragmentShaderStageState;
+	REFRESH_GraphicsShaderStageState fragmentShaderStageState;
 	fragmentShaderStageState.shaderModule = raymarchFragmentShaderModule;
 	fragmentShaderStageState.entryPointName = "main";
 	fragmentShaderStageState.uniformBufferSize = sizeof(RaymarchUniforms);
@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
 	multisampleState.multisampleCount = REFRESH_SAMPLECOUNT_1;
 	multisampleState.sampleMask = 0;
 
-	REFRESH_PipelineLayoutCreateInfo pipelineLayoutCreateInfo;
+	REFRESH_GraphicsPipelineLayoutCreateInfo pipelineLayoutCreateInfo;
 	pipelineLayoutCreateInfo.vertexSamplerBindingCount = 0;
 	pipelineLayoutCreateInfo.fragmentSamplerBindingCount = 2;
 
