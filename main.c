@@ -173,8 +173,8 @@ int main(int argc, char *argv[])
 	vertices[2].u = 0;
 	vertices[2].v = 0;
 
-	REFRESH_Buffer* vertexBuffer = REFRESH_CreateVertexBuffer(device, sizeof(Vertex) * 3);
-	REFRESH_SetVertexBufferData(device, vertexBuffer, 0, vertices, 3, sizeof(Vertex));
+	REFRESH_Buffer* vertexBuffer = REFRESH_CreateBuffer(device, REFRESH_BUFFERUSAGE_VERTEX_BIT, sizeof(Vertex) * 3);
+	REFRESH_SetBufferData(device, vertexBuffer, 0, vertices, sizeof(Vertex) * 3);
 
 	uint64_t* offsets = SDL_malloc(sizeof(uint64_t));
 	offsets[0] = 0;
@@ -265,14 +265,14 @@ int main(int argc, char *argv[])
 	renderTargetBlendState.srcColorBlendFactor = 0;
 
 	REFRESH_ColorBlendState colorBlendState;
-	colorBlendState.blendOpEnable = 0;
+	colorBlendState.logicOpEnable = 0;
+	colorBlendState.logicOp = REFRESH_LOGICOP_NO_OP;
 	colorBlendState.blendConstants[0] = 0.0f;
 	colorBlendState.blendConstants[1] = 0.0f;
 	colorBlendState.blendConstants[2] = 0.0f;
 	colorBlendState.blendConstants[3] = 0.0f;
 	colorBlendState.blendStateCount = 1;
 	colorBlendState.blendStates = &renderTargetBlendState;
-	colorBlendState.logicOp = REFRESH_LOGICOP_NO_OP;
 
 	REFRESH_DepthStencilState depthStencilState;
 	depthStencilState.depthTestEnable = 0;
@@ -297,12 +297,12 @@ int main(int argc, char *argv[])
 	depthStencilState.minDepthBounds = 0.0f;
 	depthStencilState.stencilTestEnable = 0;
 
-	REFRESH_GraphicsShaderStageState vertexShaderStageState;
+	REFRESH_ShaderStageState vertexShaderStageState;
 	vertexShaderStageState.shaderModule = passthroughVertexShaderModule;
 	vertexShaderStageState.entryPointName = "main";
 	vertexShaderStageState.uniformBufferSize = 0;
 
-	REFRESH_GraphicsShaderStageState fragmentShaderStageState;
+	REFRESH_ShaderStageState fragmentShaderStageState;
 	fragmentShaderStageState.shaderModule = raymarchFragmentShaderModule;
 	fragmentShaderStageState.entryPointName = "main";
 	fragmentShaderStageState.uniformBufferSize = sizeof(RaymarchUniforms);
