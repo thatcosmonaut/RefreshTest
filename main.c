@@ -531,7 +531,7 @@ int main(int argc, char *argv[])
 			}
 
 			REFRESH_QueuePresent(device, commandBuffer, &mainColorTargetTextureSlice, &flip, REFRESH_FILTER_NEAREST);
-			REFRESH_Submit(device, &commandBuffer, 1);
+			REFRESH_Submit(device, 1, &commandBuffer);
 
 			if (screenshotKey == 1)
 			{
