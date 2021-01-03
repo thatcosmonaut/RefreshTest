@@ -108,14 +108,19 @@ int main(int argc, char *argv[])
 		REFRESH_TEXTUREUSAGE_SAMPLER_BIT
 	);
 
-	REFRESH_SetTextureData2D(
+	REFRESH_TextureSlice setTextureDataSlice;
+	setTextureDataSlice.texture = woodTexture;
+	setTextureDataSlice.rectangle.x = 0;
+	setTextureDataSlice.rectangle.y = 0;
+	setTextureDataSlice.rectangle.w = textureWidth;
+	setTextureDataSlice.rectangle.h = textureHeight;
+	setTextureDataSlice.depth = 0;
+	setTextureDataSlice.layer = 0;
+	setTextureDataSlice.level = 0;
+
+	REFRESH_SetTextureData(
 		device,
-		woodTexture,
-		0,
-		0,
-		textureWidth,
-		textureHeight,
-		0,
+		&setTextureDataSlice,
 		woodTexturePixels,
 		textureWidth * textureHeight * 4
 	);
@@ -138,14 +143,13 @@ int main(int argc, char *argv[])
 		REFRESH_TEXTUREUSAGE_SAMPLER_BIT
 	);
 
-	REFRESH_SetTextureData2D(
+	setTextureDataSlice.texture = noiseTexture;
+	setTextureDataSlice.rectangle.w = textureWidth;
+	setTextureDataSlice.rectangle.h = textureHeight;
+
+	REFRESH_SetTextureData(
 		device,
-		noiseTexture,
-		0,
-		0,
-		textureWidth,
-		textureHeight,
-		0,
+		&setTextureDataSlice,
 		noiseTexturePixels,
 		textureWidth * textureHeight * 4
 	);
@@ -222,7 +226,13 @@ int main(int argc, char *argv[])
 
 	REFRESH_TextureSlice mainColorTargetTextureSlice;
 	mainColorTargetTextureSlice.texture = mainColorTargetTexture;
+	mainColorTargetTextureSlice.rectangle.x = 0;
+	mainColorTargetTextureSlice.rectangle.y = 0;
+	mainColorTargetTextureSlice.rectangle.w = windowWidth;
+	mainColorTargetTextureSlice.rectangle.h = windowHeight;
+	mainColorTargetTextureSlice.depth = 0;
 	mainColorTargetTextureSlice.layer = 0;
+	mainColorTargetTextureSlice.level = 0;
 
 	REFRESH_ColorTarget *mainColorTarget = REFRESH_CreateColorTarget(
 		device,
@@ -400,10 +410,10 @@ int main(int argc, char *argv[])
 	samplerStateCreateInfo.borderColor = REFRESH_BORDERCOLOR_FLOAT_OPAQUE_BLACK;
 	samplerStateCreateInfo.compareEnable = 0;
 	samplerStateCreateInfo.compareOp = REFRESH_COMPAREOP_NEVER;
-	samplerStateCreateInfo.magFilter = REFRESH_SAMPLERFILTER_LINEAR;
+	samplerStateCreateInfo.magFilter = REFRESH_FILTER_LINEAR;
 	samplerStateCreateInfo.maxAnisotropy = 0;
 	samplerStateCreateInfo.maxLod = 1;
-	samplerStateCreateInfo.minFilter = REFRESH_SAMPLERFILTER_LINEAR;
+	samplerStateCreateInfo.minFilter = REFRESH_FILTER_LINEAR;
 	samplerStateCreateInfo.minLod = 1;
 	samplerStateCreateInfo.mipLodBias = 1;
 	samplerStateCreateInfo.mipmapMode = REFRESH_SAMPLERMIPMAPMODE_LINEAR;
@@ -429,6 +439,7 @@ int main(int argc, char *argv[])
 
 	uint8_t screenshotKey = 0;
 	uint8_t *screenshotPixels = SDL_malloc(sizeof(uint8_t) * windowWidth * windowHeight * 4);
+	REFRESH_Buffer *screenshotBuffer = REFRESH_CreateBuffer(device, 0, windowWidth * windowHeight * 4);
 
 	while (!quit)
 	{
@@ -484,8 +495,11 @@ int main(int argc, char *argv[])
 		{
 			// Draw here!
 
+			REFRESH_CommandBuffer *commandBuffer = REFRESH_AcquireCommandBuffer(device, 0);
+
 			REFRESH_BeginRenderPass(
 				device,
+				commandBuffer,
 				mainRenderPass,
 				mainFramebuffer,
 				renderArea,
@@ -496,27 +510,28 @@ int main(int argc, char *argv[])
 
 			REFRESH_BindGraphicsPipeline(
 				device,
+				commandBuffer,
 				raymarchPipeline
 			);
 
 			raymarchUniforms.time = (float)t;
 
-			uint32_t fragmentParamOffset = REFRESH_PushFragmentShaderParams(device, &raymarchUniforms, 1);
-			REFRESH_BindVertexBuffers(device, 0, 1, &vertexBuffer, offsets);
-			REFRESH_SetFragmentSamplers(device, sampleTextures, sampleSamplers);
-			REFRESH_DrawPrimitives(device, 0, 1, 0, fragmentParamOffset);
+			uint32_t fragmentParamOffset = REFRESH_PushFragmentShaderParams(device, commandBuffer, &raymarchUniforms, 1);
+			REFRESH_BindVertexBuffers(device, commandBuffer, 0, 1, &vertexBuffer, offsets);
+			REFRESH_SetFragmentSamplers(device, commandBuffer, sampleTextures, sampleSamplers);
+			REFRESH_DrawPrimitives(device, commandBuffer, 0, 1, 0, fragmentParamOffset);
 
-			REFRESH_Clear(device, &renderArea, REFRESH_CLEAROPTIONS_DEPTH | REFRESH_CLEAROPTIONS_STENCIL, NULL, 0, 0.5f, 10);
-			REFRESH_EndRenderPass(device);
+			REFRESH_Clear(device, commandBuffer, &renderArea, REFRESH_CLEAROPTIONS_DEPTH | REFRESH_CLEAROPTIONS_STENCIL, NULL, 0, 0.5f, 10);
+			REFRESH_EndRenderPass(device, commandBuffer);
 
 			if (screenshotKey == 1)
 			{
 				SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "screenshot!");
-				REFRESH_GetTextureData2D(device, mainColorTargetTexture, 0, 0, windowWidth, windowHeight, 0, screenshotPixels);
+				REFRESH_CopyTextureToBuffer(device, commandBuffer, &mainColorTargetTextureSlice, screenshotBuffer);
 			}
 
-			REFRESH_QueuePresent(device, &mainColorTargetTextureSlice, NULL, &flip);
-			REFRESH_Submit(device);
+			REFRESH_QueuePresent(device, commandBuffer, &mainColorTargetTextureSlice, &flip, REFRESH_FILTER_NEAREST);
+			REFRESH_Submit(device, &commandBuffer, 1);
 
 			if (screenshotKey == 1)
 			{
@@ -535,7 +550,8 @@ int main(int argc, char *argv[])
 	REFRESH_AddDisposeTexture(device, mainColorTargetTexture);
 	REFRESH_AddDisposeSampler(device, sampler);
 
-	REFRESH_AddDisposeVertexBuffer(device, vertexBuffer);
+	REFRESH_AddDisposeBuffer(device, vertexBuffer);
+	REFRESH_AddDisposeBuffer(device, screenshotBuffer);
 
 	REFRESH_AddDisposeGraphicsPipeline(device, raymarchPipeline);
 
