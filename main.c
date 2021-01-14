@@ -319,7 +319,7 @@ int main(int argc, char *argv[])
 
 	Refresh_MultisampleState multisampleState;
 	multisampleState.multisampleCount = REFRESH_SAMPLECOUNT_1;
-	multisampleState.sampleMask = 0;
+	multisampleState.sampleMask = -1;
 
 	Refresh_GraphicsPipelineLayoutCreateInfo pipelineLayoutCreateInfo;
 	pipelineLayoutCreateInfo.vertexSamplerBindingCount = 0;
@@ -398,7 +398,7 @@ int main(int argc, char *argv[])
 
 	Refresh_DepthStencilValue depthStencilClear;
 	depthStencilClear.depth = 1.0f;
-	depthStencilClear.stencil = 0.0f;
+	depthStencilClear.stencil = 0;
 
 	/* Sampling */
 
@@ -518,7 +518,7 @@ int main(int argc, char *argv[])
 
 			uint32_t fragmentParamOffset = Refresh_PushFragmentShaderParams(device, commandBuffer, &raymarchUniforms, 1);
 			Refresh_BindVertexBuffers(device, commandBuffer, 0, 1, &vertexBuffer, offsets);
-			Refresh_SetFragmentSamplers(device, commandBuffer, sampleTextures, sampleSamplers);
+			Refresh_BindFragmentSamplers(device, commandBuffer, sampleTextures, sampleSamplers);
 			Refresh_DrawPrimitives(device, commandBuffer, 0, 1, 0, fragmentParamOffset);
 
 			Refresh_Clear(device, commandBuffer, &renderArea, REFRESH_CLEAROPTIONS_DEPTH | REFRESH_CLEAROPTIONS_STENCIL, NULL, 0, 0.5f, 10);
@@ -542,24 +542,24 @@ int main(int argc, char *argv[])
 
 	SDL_free(screenshotPixels);
 
-	Refresh_AddDisposeColorTarget(device, mainColorTarget);
-	Refresh_AddDisposeDepthStencilTarget(device, mainDepthStencilTarget);
+	Refresh_QueueDestroyColorTarget(device, mainColorTarget);
+	Refresh_QueueDestroyDepthStencilTarget(device, mainDepthStencilTarget);
 
-	Refresh_AddDisposeTexture(device, woodTexture);
-	Refresh_AddDisposeTexture(device, noiseTexture);
-	Refresh_AddDisposeTexture(device, mainColorTargetTexture);
-	Refresh_AddDisposeSampler(device, sampler);
+	Refresh_QueueDestroyTexture(device, woodTexture);
+	Refresh_QueueDestroyTexture(device, noiseTexture);
+	Refresh_QueueDestroyTexture(device, mainColorTargetTexture);
+	Refresh_QueueDestroySampler(device, sampler);
 
-	Refresh_AddDisposeBuffer(device, vertexBuffer);
-	Refresh_AddDisposeBuffer(device, screenshotBuffer);
+	Refresh_QueueDestroyBuffer(device, vertexBuffer);
+	Refresh_QueueDestroyBuffer(device, screenshotBuffer);
 
-	Refresh_AddDisposeGraphicsPipeline(device, raymarchPipeline);
+	Refresh_QueueDestroyGraphicsPipeline(device, raymarchPipeline);
 
-	Refresh_AddDisposeShaderModule(device, passthroughVertexShaderModule);
-	Refresh_AddDisposeShaderModule(device, raymarchFragmentShaderModule);
+	Refresh_QueueDestroyShaderModule(device, passthroughVertexShaderModule);
+	Refresh_QueueDestroyShaderModule(device, raymarchFragmentShaderModule);
 
-	Refresh_AddDisposeFramebuffer(device, mainFramebuffer);
-	Refresh_AddDisposeRenderPass(device, mainRenderPass);
+	Refresh_QueueDestroyFramebuffer(device, mainFramebuffer);
+	Refresh_QueueDestroyRenderPass(device, mainRenderPass);
 
 	Refresh_DestroyDevice(device);
 
