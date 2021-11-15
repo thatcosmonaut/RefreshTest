@@ -17,8 +17,10 @@ typedef struct Vertex
 
 typedef struct RaymarchUniforms
 {
-	float time, padding;
-	float resolutionX, resolutionY;
+	float time;
+	float padding;
+	float resolutionX;
+	float resolutionY;
 } RaymarchUniforms;
 
 int main(int argc, char *argv[])
@@ -91,6 +93,8 @@ int main(int argc, char *argv[])
 
 	/* Load textures */
 
+	Refresh_CommandBuffer* textureLoadCommandBuffer = Refresh_AcquireCommandBuffer(device, 0);
+
 	int32_t textureWidth, textureHeight, numChannels;
 	uint8_t *woodTexturePixels = Refresh_Image_Load(
 		"woodgrain.png",
@@ -99,13 +103,19 @@ int main(int argc, char *argv[])
 		&numChannels
 	);
 
-	Refresh_Texture *woodTexture = Refresh_CreateTexture2D(
+	Refresh_TextureCreateInfo textureCreateInfo;
+	textureCreateInfo.width = textureWidth;
+	textureCreateInfo.height = textureHeight;
+	textureCreateInfo.depth = 1;
+	textureCreateInfo.format = REFRESH_TEXTUREFORMAT_R8G8B8A8;
+	textureCreateInfo.isCube = 0;
+	textureCreateInfo.levelCount = 1;
+	textureCreateInfo.sampleCount = REFRESH_SAMPLECOUNT_1;
+	textureCreateInfo.usageFlags = REFRESH_TEXTUREUSAGE_SAMPLER_BIT;
+
+	Refresh_Texture *woodTexture = Refresh_CreateTexture(
 		device,
-		REFRESH_COLORFORMAT_R8G8B8A8,
-		textureWidth,
-		textureHeight,
-		1,
-		REFRESH_TEXTUREUSAGE_SAMPLER_BIT
+		&textureCreateInfo
 	);
 
 	Refresh_TextureSlice setTextureDataSlice;
@@ -120,6 +130,7 @@ int main(int argc, char *argv[])
 
 	Refresh_SetTextureData(
 		device,
+		textureLoadCommandBuffer,
 		&setTextureDataSlice,
 		woodTexturePixels,
 		textureWidth * textureHeight * 4
@@ -134,13 +145,12 @@ int main(int argc, char *argv[])
 		&numChannels
 	);
 
-	Refresh_Texture *noiseTexture = Refresh_CreateTexture2D(
+	textureCreateInfo.width = textureWidth;
+	textureCreateInfo.height = textureHeight;
+
+	Refresh_Texture *noiseTexture = Refresh_CreateTexture(
 		device,
-		REFRESH_COLORFORMAT_R8G8B8A8,
-		textureWidth,
-		textureHeight,
-		1,
-		REFRESH_TEXTUREUSAGE_SAMPLER_BIT
+		&textureCreateInfo
 	);
 
 	setTextureDataSlice.texture = noiseTexture;
@@ -149,12 +159,15 @@ int main(int argc, char *argv[])
 
 	Refresh_SetTextureData(
 		device,
+		textureLoadCommandBuffer,
 		&setTextureDataSlice,
 		noiseTexturePixels,
 		textureWidth * textureHeight * 4
 	);
 
 	Refresh_Image_Free(noiseTexturePixels);
+
+	Refresh_Submit(device, 1, &textureLoadCommandBuffer);
 
 	/* Define vertex buffer */
 
@@ -194,13 +207,13 @@ int main(int argc, char *argv[])
 	/* Define RenderPass */
 
 	Refresh_ColorTargetDescription mainColorTargetDescription;
-	mainColorTargetDescription.format = REFRESH_COLORFORMAT_R8G8B8A8;
+	mainColorTargetDescription.format = REFRESH_TEXTUREFORMAT_R8G8B8A8;
 	mainColorTargetDescription.loadOp = REFRESH_LOADOP_CLEAR;
 	mainColorTargetDescription.storeOp = REFRESH_STOREOP_STORE;
 	mainColorTargetDescription.multisampleCount = REFRESH_SAMPLECOUNT_1;
 
 	Refresh_DepthStencilTargetDescription mainDepthStencilTargetDescription;
-	mainDepthStencilTargetDescription.depthFormat = REFRESH_DEPTHFORMAT_D32_SFLOAT_S8_UINT;
+	mainDepthStencilTargetDescription.depthStencilFormat = REFRESH_TEXTUREFORMAT_D32_SFLOAT_S8_UINT;
 	mainDepthStencilTargetDescription.loadOp = REFRESH_LOADOP_CLEAR;
 	mainDepthStencilTargetDescription.storeOp = REFRESH_STOREOP_DONT_CARE;
 	mainDepthStencilTargetDescription.stencilLoadOp = REFRESH_LOADOP_DONT_CARE;
@@ -215,13 +228,13 @@ int main(int argc, char *argv[])
 
 	/* Define ColorTarget */
 
-	Refresh_Texture *mainColorTargetTexture = Refresh_CreateTexture2D(
+	textureCreateInfo.width = windowWidth;
+	textureCreateInfo.height = windowHeight;
+	textureCreateInfo.usageFlags = REFRESH_TEXTUREUSAGE_COLOR_TARGET_BIT;
+
+	Refresh_Texture *mainColorTargetTexture = Refresh_CreateTexture(
 		device,
-		REFRESH_COLORFORMAT_R8G8B8A8,
-		windowWidth,
-		windowHeight,
-		1,
-		REFRESH_TEXTUREUSAGE_COLOR_TARGET_BIT
+		&textureCreateInfo
 	);
 
 	Refresh_TextureSlice mainColorTargetTextureSlice;
@@ -234,17 +247,34 @@ int main(int argc, char *argv[])
 	mainColorTargetTextureSlice.layer = 0;
 	mainColorTargetTextureSlice.level = 0;
 
-	Refresh_ColorTarget *mainColorTarget = Refresh_CreateColorTarget(
+	Refresh_RenderTarget *mainColorTarget = Refresh_CreateRenderTarget(
 		device,
-		REFRESH_SAMPLECOUNT_1,
-		&mainColorTargetTextureSlice
+		&mainColorTargetTextureSlice,
+		REFRESH_SAMPLECOUNT_1
 	);
 
-	Refresh_DepthStencilTarget *mainDepthStencilTarget = Refresh_CreateDepthStencilTarget(
+	textureCreateInfo.usageFlags = REFRESH_TEXTUREUSAGE_DEPTH_STENCIL_TARGET_BIT;
+	textureCreateInfo.format = REFRESH_TEXTUREFORMAT_D32_SFLOAT_S8_UINT;
+
+	Refresh_Texture* mainDepthStencilTargetTexture = Refresh_CreateTexture(
 		device,
-		windowWidth,
-		windowHeight,
-		REFRESH_DEPTHFORMAT_D32_SFLOAT_S8_UINT
+		&textureCreateInfo
+	);
+
+	Refresh_TextureSlice mainDepthStencilTargetTextureSlice;
+	mainDepthStencilTargetTextureSlice.texture = mainDepthStencilTargetTexture;
+	mainDepthStencilTargetTextureSlice.rectangle.x = 0;
+	mainDepthStencilTargetTextureSlice.rectangle.y = 0;
+	mainDepthStencilTargetTextureSlice.rectangle.w = windowWidth;
+	mainDepthStencilTargetTextureSlice.rectangle.h = windowHeight;
+	mainDepthStencilTargetTextureSlice.depth = 0;
+	mainDepthStencilTargetTextureSlice.layer = 0;
+	mainDepthStencilTargetTextureSlice.level = 0;
+
+	Refresh_RenderTarget *mainDepthStencilTarget = Refresh_CreateRenderTarget(
+		device,
+		&mainDepthStencilTargetTextureSlice,
+		REFRESH_SAMPLECOUNT_1
 	);
 
 	/* Define Framebuffer */
@@ -336,9 +366,6 @@ int main(int argc, char *argv[])
 	rasterizerState.frontFace = REFRESH_FRONTFACE_CLOCKWISE;
 	rasterizerState.lineWidth = 1.0f;
 
-	Refresh_TopologyState topologyState;
-	topologyState.topology = REFRESH_PRIMITIVETYPE_TRIANGLELIST;
-
 	Refresh_VertexBinding vertexBinding;
 	vertexBinding.binding = 0;
 	vertexBinding.inputRate = REFRESH_VERTEXINPUTRATE_VERTEX;
@@ -383,18 +410,18 @@ int main(int argc, char *argv[])
 	raymarchPipelineCreateInfo.multisampleState = multisampleState;
 	raymarchPipelineCreateInfo.pipelineLayoutCreateInfo = pipelineLayoutCreateInfo;
 	raymarchPipelineCreateInfo.rasterizerState = rasterizerState;
-	raymarchPipelineCreateInfo.topologyState = topologyState;
+	raymarchPipelineCreateInfo.primitiveType = REFRESH_PRIMITIVETYPE_TRIANGLELIST;
 	raymarchPipelineCreateInfo.vertexInputState = vertexInputState;
 	raymarchPipelineCreateInfo.viewportState = viewportState;
 	raymarchPipelineCreateInfo.renderPass = mainRenderPass;
 
 	Refresh_GraphicsPipeline* raymarchPipeline = Refresh_CreateGraphicsPipeline(device, &raymarchPipelineCreateInfo);
 
-	Refresh_Color clearColor;
-	clearColor.r = 100;
-	clearColor.g = 149;
-	clearColor.b = 237;
-	clearColor.a = 255;
+	Refresh_Vec4 clearColor;
+	clearColor.x = 100;
+	clearColor.y = 149;
+	clearColor.z = 237;
+	clearColor.w = 255;
 
 	Refresh_DepthStencilValue depthStencilClear;
 	depthStencilClear.depth = 1.0f;
@@ -502,7 +529,7 @@ int main(int argc, char *argv[])
 				commandBuffer,
 				mainRenderPass,
 				mainFramebuffer,
-				renderArea,
+				&renderArea,
 				&clearColor,
 				1,
 				&depthStencilClear
@@ -516,12 +543,16 @@ int main(int argc, char *argv[])
 
 			raymarchUniforms.time = (float)t;
 
-			uint32_t fragmentParamOffset = Refresh_PushFragmentShaderParams(device, commandBuffer, &raymarchUniforms, 1);
+			uint32_t fragmentParamOffset = Refresh_PushFragmentShaderUniforms(device, raymarchPipeline, &raymarchUniforms, sizeof(RaymarchUniforms));
 			Refresh_BindVertexBuffers(device, commandBuffer, 0, 1, &vertexBuffer, offsets);
 			Refresh_BindFragmentSamplers(device, commandBuffer, sampleTextures, sampleSamplers);
 			Refresh_DrawPrimitives(device, commandBuffer, 0, 1, 0, fragmentParamOffset);
 
-			Refresh_Clear(device, commandBuffer, &renderArea, REFRESH_CLEAROPTIONS_DEPTH | REFRESH_CLEAROPTIONS_STENCIL, NULL, 0, 0.5f, 10);
+			Refresh_DepthStencilValue depthStencilValue;
+			depthStencilValue.depth = 0.5f;
+			depthStencilValue.stencil = 10;
+
+			Refresh_Clear(device, commandBuffer, &renderArea, REFRESH_CLEAROPTIONS_DEPTH | REFRESH_CLEAROPTIONS_STENCIL, NULL, 0, depthStencilValue);
 			Refresh_EndRenderPass(device, commandBuffer);
 
 			if (screenshotKey == 1)
@@ -542,12 +573,13 @@ int main(int argc, char *argv[])
 
 	SDL_free(screenshotPixels);
 
-	Refresh_QueueDestroyColorTarget(device, mainColorTarget);
-	Refresh_QueueDestroyDepthStencilTarget(device, mainDepthStencilTarget);
+	Refresh_QueueDestroyRenderTarget(device, mainColorTarget);
+	Refresh_QueueDestroyRenderTarget(device, mainDepthStencilTarget);
 
 	Refresh_QueueDestroyTexture(device, woodTexture);
 	Refresh_QueueDestroyTexture(device, noiseTexture);
 	Refresh_QueueDestroyTexture(device, mainColorTargetTexture);
+	Refresh_QueueDestroyTexture(device, mainDepthStencilTargetTexture);
 	Refresh_QueueDestroySampler(device, sampler);
 
 	Refresh_QueueDestroyBuffer(device, vertexBuffer);
