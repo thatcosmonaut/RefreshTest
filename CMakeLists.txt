@@ -2,6 +2,20 @@ cmake_minimum_required (VERSION 2.8.12)
 
 project (RefreshTest C)
 
+# Build Type
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+	# By default, we use Release
+	message(STATUS "Setting build type to 'Release' as none was specified.")
+	set(CMAKE_BUILD_TYPE "Release" CACHE
+		STRING "Choose the type of build." FORCE
+	)
+
+	# Set the possible values of build type for cmake-gui
+	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
+		STRINGS "Debug" "Release" "RelWithDebInfo"
+	)
+endif()
+
 add_executable(RefreshTest main.c)
 
 target_include_directories (RefreshTest PUBLIC

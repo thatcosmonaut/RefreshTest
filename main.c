@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
 
 	/* Load textures */
 
-	Refresh_CommandBuffer* textureLoadCommandBuffer = Refresh_AcquireCommandBuffer(device, 0);
+	Refresh_CommandBuffer* loadCommandBuffer = Refresh_AcquireCommandBuffer(device, 0);
 
 	int32_t textureWidth, textureHeight, numChannels;
 	uint8_t *woodTexturePixels = Refresh_Image_Load(
@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 
 	Refresh_SetTextureData(
 		device,
-		textureLoadCommandBuffer,
+		loadCommandBuffer,
 		&setTextureDataSlice,
 		woodTexturePixels,
 		textureWidth * textureHeight * 4
@@ -159,15 +159,13 @@ int main(int argc, char *argv[])
 
 	Refresh_SetTextureData(
 		device,
-		textureLoadCommandBuffer,
+		loadCommandBuffer,
 		&setTextureDataSlice,
 		noiseTexturePixels,
 		textureWidth * textureHeight * 4
 	);
 
 	Refresh_Image_Free(noiseTexturePixels);
-
-	Refresh_Submit(device, 1, &textureLoadCommandBuffer);
 
 	/* Define vertex buffer */
 
@@ -191,7 +189,9 @@ int main(int argc, char *argv[])
 	vertices[2].v = 0;
 
 	Refresh_Buffer* vertexBuffer = Refresh_CreateBuffer(device, REFRESH_BUFFERUSAGE_VERTEX_BIT, sizeof(Vertex) * 3);
-	Refresh_SetBufferData(device, vertexBuffer, 0, vertices, sizeof(Vertex) * 3);
+	Refresh_SetBufferData(device, loadCommandBuffer, vertexBuffer, 0, vertices, sizeof(Vertex) * 3);
+
+	Refresh_Submit(device, 1, &loadCommandBuffer);
 
 	uint64_t* offsets = SDL_malloc(sizeof(uint64_t));
 	offsets[0] = 0;
@@ -203,28 +203,6 @@ int main(int argc, char *argv[])
 	raymarchUniforms.padding = 0;
 	raymarchUniforms.resolutionX = (float)windowWidth;
 	raymarchUniforms.resolutionY = (float)windowHeight;
-
-	/* Define RenderPass */
-
-	Refresh_ColorTargetDescription mainColorTargetDescription;
-	mainColorTargetDescription.format = REFRESH_TEXTUREFORMAT_R8G8B8A8;
-	mainColorTargetDescription.loadOp = REFRESH_LOADOP_CLEAR;
-	mainColorTargetDescription.storeOp = REFRESH_STOREOP_STORE;
-	mainColorTargetDescription.multisampleCount = REFRESH_SAMPLECOUNT_1;
-
-	Refresh_DepthStencilTargetDescription mainDepthStencilTargetDescription;
-	mainDepthStencilTargetDescription.depthStencilFormat = REFRESH_TEXTUREFORMAT_D32_SFLOAT_S8_UINT;
-	mainDepthStencilTargetDescription.loadOp = REFRESH_LOADOP_CLEAR;
-	mainDepthStencilTargetDescription.storeOp = REFRESH_STOREOP_DONT_CARE;
-	mainDepthStencilTargetDescription.stencilLoadOp = REFRESH_LOADOP_DONT_CARE;
-	mainDepthStencilTargetDescription.stencilStoreOp = REFRESH_STOREOP_DONT_CARE;
-
-	Refresh_RenderPassCreateInfo mainRenderPassCreateInfo;
-	mainRenderPassCreateInfo.colorTargetCount = 1;
-	mainRenderPassCreateInfo.colorTargetDescriptions = &mainColorTargetDescription;
-	mainRenderPassCreateInfo.depthTargetDescription = &mainDepthStencilTargetDescription;
-
-	Refresh_RenderPass *mainRenderPass = Refresh_CreateRenderPass(device, &mainRenderPassCreateInfo);
 
 	/* Define ColorTarget */
 
@@ -277,42 +255,15 @@ int main(int argc, char *argv[])
 		REFRESH_SAMPLECOUNT_1
 	);
 
-	/* Define Framebuffer */
-
-	Refresh_FramebufferCreateInfo framebufferCreateInfo;
-	framebufferCreateInfo.width = 1280;
-	framebufferCreateInfo.height = 720;
-	framebufferCreateInfo.colorTargetCount = 1;
-	framebufferCreateInfo.pColorTargets = &mainColorTarget;
-	framebufferCreateInfo.pDepthStencilTarget = mainDepthStencilTarget;
-	framebufferCreateInfo.renderPass = mainRenderPass;
-
-	Refresh_Framebuffer *mainFramebuffer = Refresh_CreateFramebuffer(device, &framebufferCreateInfo);
-
 	/* Define pipeline */
-	Refresh_ColorTargetBlendState renderTargetBlendState;
-	renderTargetBlendState.blendEnable = 0;
-	renderTargetBlendState.alphaBlendOp = 0;
-	renderTargetBlendState.colorBlendOp = 0;
-	renderTargetBlendState.colorWriteMask =
-		REFRESH_COLORCOMPONENT_R_BIT |
-		REFRESH_COLORCOMPONENT_G_BIT |
-		REFRESH_COLORCOMPONENT_B_BIT |
-		REFRESH_COLORCOMPONENT_A_BIT;
-	renderTargetBlendState.dstAlphaBlendFactor = 0;
-	renderTargetBlendState.dstColorBlendFactor = 0;
-	renderTargetBlendState.srcAlphaBlendFactor = 0;
-	renderTargetBlendState.srcColorBlendFactor = 0;
 
-	Refresh_ColorBlendState colorBlendState;
+	Refresh_PipelineColorBlendState colorBlendState;
 	colorBlendState.logicOpEnable = 0;
 	colorBlendState.logicOp = REFRESH_LOGICOP_NO_OP;
 	colorBlendState.blendConstants[0] = 0.0f;
 	colorBlendState.blendConstants[1] = 0.0f;
 	colorBlendState.blendConstants[2] = 0.0f;
 	colorBlendState.blendConstants[3] = 0.0f;
-	colorBlendState.blendStateCount = 1;
-	colorBlendState.blendStates = &renderTargetBlendState;
 
 	Refresh_DepthStencilState depthStencilState;
 	depthStencilState.depthTestEnable = 0;
@@ -402,6 +353,31 @@ int main(int argc, char *argv[])
 	viewportState.scissors = &renderArea;
 	viewportState.scissorCount = 1;
 
+	Refresh_ColorAttachmentBlendState renderTargetBlendState;
+	renderTargetBlendState.blendEnable = 0;
+	renderTargetBlendState.alphaBlendOp = 0;
+	renderTargetBlendState.colorBlendOp = 0;
+	renderTargetBlendState.colorWriteMask =
+		REFRESH_COLORCOMPONENT_R_BIT |
+		REFRESH_COLORCOMPONENT_G_BIT |
+		REFRESH_COLORCOMPONENT_B_BIT |
+		REFRESH_COLORCOMPONENT_A_BIT;
+	renderTargetBlendState.dstAlphaBlendFactor = 0;
+	renderTargetBlendState.dstColorBlendFactor = 0;
+	renderTargetBlendState.srcAlphaBlendFactor = 0;
+	renderTargetBlendState.srcColorBlendFactor = 0;
+
+	Refresh_ColorAttachmentDescription colorAttachmentDescription;
+	colorAttachmentDescription.format = REFRESH_TEXTUREFORMAT_R8G8B8A8;
+	colorAttachmentDescription.sampleCount = REFRESH_SAMPLECOUNT_1;
+	colorAttachmentDescription.blendState = renderTargetBlendState;
+
+	Refresh_GraphicsPipelineAttachmentInfo attachmentInfo;
+	attachmentInfo.colorAttachmentCount = 1;
+	attachmentInfo.colorAttachmentDescriptions = &colorAttachmentDescription;
+	attachmentInfo.hasDepthStencilAttachment = 0;
+	attachmentInfo.depthStencilFormat = 0;
+
 	Refresh_GraphicsPipelineCreateInfo raymarchPipelineCreateInfo;
 	raymarchPipelineCreateInfo.colorBlendState = colorBlendState;
 	raymarchPipelineCreateInfo.depthStencilState = depthStencilState;
@@ -413,7 +389,7 @@ int main(int argc, char *argv[])
 	raymarchPipelineCreateInfo.primitiveType = REFRESH_PRIMITIVETYPE_TRIANGLELIST;
 	raymarchPipelineCreateInfo.vertexInputState = vertexInputState;
 	raymarchPipelineCreateInfo.viewportState = viewportState;
-	raymarchPipelineCreateInfo.renderPass = mainRenderPass;
+	raymarchPipelineCreateInfo.attachmentInfo = attachmentInfo;
 
 	Refresh_GraphicsPipeline* raymarchPipeline = Refresh_CreateGraphicsPipeline(device, &raymarchPipelineCreateInfo);
 
@@ -524,15 +500,19 @@ int main(int argc, char *argv[])
 
 			Refresh_CommandBuffer *commandBuffer = Refresh_AcquireCommandBuffer(device, 0);
 
+			Refresh_ColorAttachmentInfo colorTargetInfo;
+			colorTargetInfo.pRenderTarget = mainColorTarget;
+			colorTargetInfo.loadOp = REFRESH_LOADOP_CLEAR;
+			colorTargetInfo.storeOp = REFRESH_STOREOP_DONT_CARE;
+			colorTargetInfo.clearColor = clearColor;
+
 			Refresh_BeginRenderPass(
 				device,
 				commandBuffer,
-				mainRenderPass,
-				mainFramebuffer,
 				&renderArea,
-				&clearColor,
+				&colorTargetInfo,
 				1,
-				&depthStencilClear
+				NULL
 			);
 
 			Refresh_BindGraphicsPipeline(
@@ -543,16 +523,11 @@ int main(int argc, char *argv[])
 
 			raymarchUniforms.time = (float)t;
 
-			uint32_t fragmentParamOffset = Refresh_PushFragmentShaderUniforms(device, raymarchPipeline, &raymarchUniforms, sizeof(RaymarchUniforms));
+			uint32_t fragmentParamOffset = Refresh_PushFragmentShaderUniforms(device, commandBuffer, &raymarchUniforms, sizeof(RaymarchUniforms));
 			Refresh_BindVertexBuffers(device, commandBuffer, 0, 1, &vertexBuffer, offsets);
 			Refresh_BindFragmentSamplers(device, commandBuffer, sampleTextures, sampleSamplers);
 			Refresh_DrawPrimitives(device, commandBuffer, 0, 1, 0, fragmentParamOffset);
 
-			Refresh_DepthStencilValue depthStencilValue;
-			depthStencilValue.depth = 0.5f;
-			depthStencilValue.stencil = 10;
-
-			Refresh_Clear(device, commandBuffer, &renderArea, REFRESH_CLEAROPTIONS_DEPTH | REFRESH_CLEAROPTIONS_STENCIL, NULL, 0, depthStencilValue);
 			Refresh_EndRenderPass(device, commandBuffer);
 
 			if (screenshotKey == 1)
@@ -561,7 +536,7 @@ int main(int argc, char *argv[])
 				Refresh_CopyTextureToBuffer(device, commandBuffer, &mainColorTargetTextureSlice, screenshotBuffer);
 			}
 
-			Refresh_QueuePresent(device, commandBuffer, &mainColorTargetTextureSlice, &flip, REFRESH_FILTER_NEAREST);
+			Refresh_QueuePresent(device, commandBuffer, &mainColorTargetTextureSlice, &flip, REFRESH_FILTER_NEAREST, window);
 			Refresh_Submit(device, 1, &commandBuffer);
 
 			if (screenshotKey == 1)
@@ -573,25 +548,26 @@ int main(int argc, char *argv[])
 
 	SDL_free(screenshotPixels);
 
-	Refresh_QueueDestroyRenderTarget(device, mainColorTarget);
-	Refresh_QueueDestroyRenderTarget(device, mainDepthStencilTarget);
+	Refresh_CommandBuffer *destroyCommandBuffer = Refresh_AcquireCommandBuffer(device, 0);
 
-	Refresh_QueueDestroyTexture(device, woodTexture);
-	Refresh_QueueDestroyTexture(device, noiseTexture);
-	Refresh_QueueDestroyTexture(device, mainColorTargetTexture);
-	Refresh_QueueDestroyTexture(device, mainDepthStencilTargetTexture);
-	Refresh_QueueDestroySampler(device, sampler);
+	Refresh_QueueDestroyRenderTarget(device, destroyCommandBuffer, mainColorTarget);
+	Refresh_QueueDestroyRenderTarget(device, destroyCommandBuffer, mainDepthStencilTarget);
 
-	Refresh_QueueDestroyBuffer(device, vertexBuffer);
-	Refresh_QueueDestroyBuffer(device, screenshotBuffer);
+	Refresh_QueueDestroyTexture(device, destroyCommandBuffer, woodTexture);
+	Refresh_QueueDestroyTexture(device, destroyCommandBuffer, noiseTexture);
+	Refresh_QueueDestroyTexture(device, destroyCommandBuffer, mainColorTargetTexture);
+	Refresh_QueueDestroyTexture(device, destroyCommandBuffer, mainDepthStencilTargetTexture);
+	Refresh_QueueDestroySampler(device, destroyCommandBuffer, sampler);
 
-	Refresh_QueueDestroyGraphicsPipeline(device, raymarchPipeline);
+	Refresh_QueueDestroyBuffer(device, destroyCommandBuffer, vertexBuffer);
+	Refresh_QueueDestroyBuffer(device, destroyCommandBuffer, screenshotBuffer);
 
-	Refresh_QueueDestroyShaderModule(device, passthroughVertexShaderModule);
-	Refresh_QueueDestroyShaderModule(device, raymarchFragmentShaderModule);
+	Refresh_QueueDestroyGraphicsPipeline(device, destroyCommandBuffer, raymarchPipeline);
 
-	Refresh_QueueDestroyFramebuffer(device, mainFramebuffer);
-	Refresh_QueueDestroyRenderPass(device, mainRenderPass);
+	Refresh_QueueDestroyShaderModule(device, destroyCommandBuffer, passthroughVertexShaderModule);
+	Refresh_QueueDestroyShaderModule(device, destroyCommandBuffer, raymarchFragmentShaderModule);
+
+	Refresh_Submit(device, 1, &destroyCommandBuffer);
 
 	Refresh_DestroyDevice(device);
 
