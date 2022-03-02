@@ -206,14 +206,6 @@ int main(int argc, char *argv[])
 
 	/* Define pipeline */
 
-	Refresh_PipelineColorBlendState colorBlendState;
-	colorBlendState.logicOpEnable = 0;
-	colorBlendState.logicOp = REFRESH_LOGICOP_NO_OP;
-	colorBlendState.blendConstants[0] = 0.0f;
-	colorBlendState.blendConstants[1] = 0.0f;
-	colorBlendState.blendConstants[2] = 0.0f;
-	colorBlendState.blendConstants[3] = 0.0f;
-
 	Refresh_DepthStencilState depthStencilState;
 	depthStencilState.depthTestEnable = 0;
 	depthStencilState.backStencilState.compareMask = 0;
@@ -241,19 +233,17 @@ int main(int argc, char *argv[])
 	vertexShaderStageState.shaderModule = passthroughVertexShaderModule;
 	vertexShaderStageState.entryPointName = "main";
 	vertexShaderStageState.uniformBufferSize = 0;
+	vertexShaderStageState.samplerBindingCount = 0;
 
 	Refresh_ShaderStageState fragmentShaderStageState;
 	fragmentShaderStageState.shaderModule = raymarchFragmentShaderModule;
 	fragmentShaderStageState.entryPointName = "main";
 	fragmentShaderStageState.uniformBufferSize = sizeof(RaymarchUniforms);
+	fragmentShaderStageState.samplerBindingCount = 2;
 
 	Refresh_MultisampleState multisampleState;
 	multisampleState.multisampleCount = REFRESH_SAMPLECOUNT_1;
 	multisampleState.sampleMask = -1;
-
-	Refresh_GraphicsPipelineLayoutCreateInfo pipelineLayoutCreateInfo;
-	pipelineLayoutCreateInfo.vertexSamplerBindingCount = 0;
-	pipelineLayoutCreateInfo.fragmentSamplerBindingCount = 2;
 
 	Refresh_RasterizerState rasterizerState;
 	rasterizerState.cullMode = REFRESH_CULLMODE_NONE;
@@ -317,7 +307,7 @@ int main(int argc, char *argv[])
 	renderTargetBlendState.srcColorBlendFactor = 0;
 
 	Refresh_ColorAttachmentDescription colorAttachmentDescription;
-	colorAttachmentDescription.format = REFRESH_TEXTUREFORMAT_B8G8R8A8;
+	colorAttachmentDescription.format = Refresh_GetSwapchainFormat(device, window);
 	colorAttachmentDescription.sampleCount = REFRESH_SAMPLECOUNT_1;
 	colorAttachmentDescription.blendState = renderTargetBlendState;
 
@@ -328,17 +318,19 @@ int main(int argc, char *argv[])
 	attachmentInfo.depthStencilFormat = 0;
 
 	Refresh_GraphicsPipelineCreateInfo raymarchPipelineCreateInfo;
-	raymarchPipelineCreateInfo.colorBlendState = colorBlendState;
 	raymarchPipelineCreateInfo.depthStencilState = depthStencilState;
 	raymarchPipelineCreateInfo.vertexShaderState = vertexShaderStageState;
 	raymarchPipelineCreateInfo.fragmentShaderState = fragmentShaderStageState;
 	raymarchPipelineCreateInfo.multisampleState = multisampleState;
-	raymarchPipelineCreateInfo.pipelineLayoutCreateInfo = pipelineLayoutCreateInfo;
 	raymarchPipelineCreateInfo.rasterizerState = rasterizerState;
 	raymarchPipelineCreateInfo.primitiveType = REFRESH_PRIMITIVETYPE_TRIANGLELIST;
 	raymarchPipelineCreateInfo.vertexInputState = vertexInputState;
 	raymarchPipelineCreateInfo.viewportState = viewportState;
 	raymarchPipelineCreateInfo.attachmentInfo = attachmentInfo;
+	raymarchPipelineCreateInfo.blendConstants[0] = 0.0f;
+	raymarchPipelineCreateInfo.blendConstants[1] = 0.0f;
+	raymarchPipelineCreateInfo.blendConstants[2] = 0.0f;
+	raymarchPipelineCreateInfo.blendConstants[3] = 0.0f;
 
 	Refresh_GraphicsPipeline* raymarchPipeline = Refresh_CreateGraphicsPipeline(device, &raymarchPipelineCreateInfo);
 
