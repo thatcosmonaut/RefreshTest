@@ -204,57 +204,6 @@ int main(int argc, char *argv[])
 	raymarchUniforms.resolutionX = (float)windowWidth;
 	raymarchUniforms.resolutionY = (float)windowHeight;
 
-	/* Define ColorTarget */
-
-	textureCreateInfo.width = windowWidth;
-	textureCreateInfo.height = windowHeight;
-	textureCreateInfo.usageFlags = REFRESH_TEXTUREUSAGE_COLOR_TARGET_BIT;
-
-	Refresh_Texture *mainColorTargetTexture = Refresh_CreateTexture(
-		device,
-		&textureCreateInfo
-	);
-
-	Refresh_TextureSlice mainColorTargetTextureSlice;
-	mainColorTargetTextureSlice.texture = mainColorTargetTexture;
-	mainColorTargetTextureSlice.rectangle.x = 0;
-	mainColorTargetTextureSlice.rectangle.y = 0;
-	mainColorTargetTextureSlice.rectangle.w = windowWidth;
-	mainColorTargetTextureSlice.rectangle.h = windowHeight;
-	mainColorTargetTextureSlice.depth = 0;
-	mainColorTargetTextureSlice.layer = 0;
-	mainColorTargetTextureSlice.level = 0;
-
-	Refresh_RenderTarget *mainColorTarget = Refresh_CreateRenderTarget(
-		device,
-		&mainColorTargetTextureSlice,
-		REFRESH_SAMPLECOUNT_1
-	);
-
-	textureCreateInfo.usageFlags = REFRESH_TEXTUREUSAGE_DEPTH_STENCIL_TARGET_BIT;
-	textureCreateInfo.format = REFRESH_TEXTUREFORMAT_D32_SFLOAT_S8_UINT;
-
-	Refresh_Texture* mainDepthStencilTargetTexture = Refresh_CreateTexture(
-		device,
-		&textureCreateInfo
-	);
-
-	Refresh_TextureSlice mainDepthStencilTargetTextureSlice;
-	mainDepthStencilTargetTextureSlice.texture = mainDepthStencilTargetTexture;
-	mainDepthStencilTargetTextureSlice.rectangle.x = 0;
-	mainDepthStencilTargetTextureSlice.rectangle.y = 0;
-	mainDepthStencilTargetTextureSlice.rectangle.w = windowWidth;
-	mainDepthStencilTargetTextureSlice.rectangle.h = windowHeight;
-	mainDepthStencilTargetTextureSlice.depth = 0;
-	mainDepthStencilTargetTextureSlice.layer = 0;
-	mainDepthStencilTargetTextureSlice.level = 0;
-
-	Refresh_RenderTarget *mainDepthStencilTarget = Refresh_CreateRenderTarget(
-		device,
-		&mainDepthStencilTargetTextureSlice,
-		REFRESH_SAMPLECOUNT_1
-	);
-
 	/* Define pipeline */
 
 	Refresh_PipelineColorBlendState colorBlendState;
@@ -307,7 +256,7 @@ int main(int argc, char *argv[])
 	pipelineLayoutCreateInfo.fragmentSamplerBindingCount = 2;
 
 	Refresh_RasterizerState rasterizerState;
-	rasterizerState.cullMode = REFRESH_CULLMODE_BACK;
+	rasterizerState.cullMode = REFRESH_CULLMODE_NONE;
 	rasterizerState.depthBiasClamp = 0;
 	rasterizerState.depthBiasConstantFactor = 0;
 	rasterizerState.depthBiasEnable = 0;
@@ -341,9 +290,9 @@ int main(int argc, char *argv[])
 
 	Refresh_Viewport viewport;
 	viewport.x = 0;
-	viewport.y = 0;
+	viewport.y = (float)windowHeight;
 	viewport.w = (float)windowWidth;
-	viewport.h = (float)windowHeight;
+	viewport.h = -(float)windowHeight;
 	viewport.minDepth = 0;
 	viewport.maxDepth = 1;
 
@@ -368,7 +317,7 @@ int main(int argc, char *argv[])
 	renderTargetBlendState.srcColorBlendFactor = 0;
 
 	Refresh_ColorAttachmentDescription colorAttachmentDescription;
-	colorAttachmentDescription.format = REFRESH_TEXTUREFORMAT_R8G8B8A8;
+	colorAttachmentDescription.format = REFRESH_TEXTUREFORMAT_B8G8R8A8;
 	colorAttachmentDescription.sampleCount = REFRESH_SAMPLECOUNT_1;
 	colorAttachmentDescription.blendState = renderTargetBlendState;
 
@@ -500,10 +449,16 @@ int main(int argc, char *argv[])
 
 			Refresh_CommandBuffer *commandBuffer = Refresh_AcquireCommandBuffer(device, 0);
 
+			Refresh_Texture *texture = Refresh_AcquireSwapchainTexture(device, commandBuffer, window);
+
 			Refresh_ColorAttachmentInfo colorTargetInfo;
-			colorTargetInfo.pRenderTarget = mainColorTarget;
+			colorTargetInfo.texture = texture;
+			colorTargetInfo.depth = 0;
+			colorTargetInfo.layer = 0;
+			colorTargetInfo.level = 0;
+			colorTargetInfo.sampleCount = REFRESH_SAMPLECOUNT_1;
 			colorTargetInfo.loadOp = REFRESH_LOADOP_CLEAR;
-			colorTargetInfo.storeOp = REFRESH_STOREOP_DONT_CARE;
+			colorTargetInfo.storeOp = REFRESH_STOREOP_STORE;
 			colorTargetInfo.clearColor = clearColor;
 
 			Refresh_BeginRenderPass(
@@ -533,15 +488,26 @@ int main(int argc, char *argv[])
 			if (screenshotKey == 1)
 			{
 				SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "screenshot!");
-				Refresh_CopyTextureToBuffer(device, commandBuffer, &mainColorTargetTextureSlice, screenshotBuffer);
+				Refresh_TextureSlice screenshotSlice;
+				screenshotSlice.depth = 0;
+				screenshotSlice.layer = 0;
+				screenshotSlice.level = 0;
+				screenshotSlice.rectangle.x = 0;
+				screenshotSlice.rectangle.y = 0;
+				screenshotSlice.rectangle.w = windowWidth;
+				screenshotSlice.rectangle.h = windowHeight;
+				screenshotSlice.texture = texture;
+				Refresh_CopyTextureToBuffer(device, commandBuffer, &screenshotSlice, screenshotBuffer);
 			}
 
-			Refresh_QueuePresent(device, commandBuffer, &mainColorTargetTextureSlice, &flip, REFRESH_FILTER_NEAREST, window);
 			Refresh_Submit(device, 1, &commandBuffer);
 
 			if (screenshotKey == 1)
 			{
-				Refresh_Image_SavePNG("screenshot.png", windowWidth, windowHeight, screenshotPixels);
+				Refresh_Wait(device);
+				Refresh_TextureFormat swapchainFormat = Refresh_GetSwapchainFormat(device, window);
+				Refresh_GetBufferData(device, screenshotBuffer, screenshotPixels, windowWidth * windowHeight * 4);
+				Refresh_Image_SavePNG("screenshot.png", windowWidth, windowHeight, swapchainFormat == REFRESH_TEXTUREFORMAT_B8G8R8A8, screenshotPixels);
 			}
 		}
 	}
@@ -550,13 +516,8 @@ int main(int argc, char *argv[])
 
 	Refresh_CommandBuffer *destroyCommandBuffer = Refresh_AcquireCommandBuffer(device, 0);
 
-	Refresh_QueueDestroyRenderTarget(device, destroyCommandBuffer, mainColorTarget);
-	Refresh_QueueDestroyRenderTarget(device, destroyCommandBuffer, mainDepthStencilTarget);
-
 	Refresh_QueueDestroyTexture(device, destroyCommandBuffer, woodTexture);
 	Refresh_QueueDestroyTexture(device, destroyCommandBuffer, noiseTexture);
-	Refresh_QueueDestroyTexture(device, destroyCommandBuffer, mainColorTargetTexture);
-	Refresh_QueueDestroyTexture(device, destroyCommandBuffer, mainDepthStencilTargetTexture);
 	Refresh_QueueDestroySampler(device, destroyCommandBuffer, sampler);
 
 	Refresh_QueueDestroyBuffer(device, destroyCommandBuffer, vertexBuffer);
