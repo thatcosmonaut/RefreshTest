@@ -229,17 +229,17 @@ int main(int argc, char *argv[])
 	depthStencilState.minDepthBounds = 0.0f;
 	depthStencilState.stencilTestEnable = 0;
 
-	Refresh_ShaderStageState vertexShaderStageState;
-	vertexShaderStageState.shaderModule = passthroughVertexShaderModule;
-	vertexShaderStageState.entryPointName = "main";
-	vertexShaderStageState.uniformBufferSize = 0;
-	vertexShaderStageState.samplerBindingCount = 0;
+	Refresh_GraphicsShaderInfo vertexShaderInfo;
+	vertexShaderInfo.shaderModule = passthroughVertexShaderModule;
+	vertexShaderInfo.entryPointName = "main";
+	vertexShaderInfo.uniformBufferSize = 0;
+	vertexShaderInfo.samplerBindingCount = 0;
 
-	Refresh_ShaderStageState fragmentShaderStageState;
-	fragmentShaderStageState.shaderModule = raymarchFragmentShaderModule;
-	fragmentShaderStageState.entryPointName = "main";
-	fragmentShaderStageState.uniformBufferSize = sizeof(RaymarchUniforms);
-	fragmentShaderStageState.samplerBindingCount = 2;
+	Refresh_GraphicsShaderInfo fragmentShaderInfo;
+	fragmentShaderInfo.shaderModule = raymarchFragmentShaderModule;
+	fragmentShaderInfo.entryPointName = "main";
+	fragmentShaderInfo.uniformBufferSize = sizeof(RaymarchUniforms);
+	fragmentShaderInfo.samplerBindingCount = 2;
 
 	Refresh_MultisampleState multisampleState;
 	multisampleState.multisampleCount = REFRESH_SAMPLECOUNT_1;
@@ -286,12 +286,6 @@ int main(int argc, char *argv[])
 	viewport.minDepth = 0;
 	viewport.maxDepth = 1;
 
-	Refresh_ViewportState viewportState;
-	viewportState.viewports = &viewport;
-	viewportState.viewportCount = 1;
-	viewportState.scissors = &renderArea;
-	viewportState.scissorCount = 1;
-
 	Refresh_ColorAttachmentBlendState renderTargetBlendState;
 	renderTargetBlendState.blendEnable = 0;
 	renderTargetBlendState.alphaBlendOp = 0;
@@ -319,13 +313,12 @@ int main(int argc, char *argv[])
 
 	Refresh_GraphicsPipelineCreateInfo raymarchPipelineCreateInfo;
 	raymarchPipelineCreateInfo.depthStencilState = depthStencilState;
-	raymarchPipelineCreateInfo.vertexShaderState = vertexShaderStageState;
-	raymarchPipelineCreateInfo.fragmentShaderState = fragmentShaderStageState;
+	raymarchPipelineCreateInfo.vertexShaderInfo = vertexShaderInfo;
+	raymarchPipelineCreateInfo.fragmentShaderInfo = fragmentShaderInfo;
 	raymarchPipelineCreateInfo.multisampleState = multisampleState;
 	raymarchPipelineCreateInfo.rasterizerState = rasterizerState;
 	raymarchPipelineCreateInfo.primitiveType = REFRESH_PRIMITIVETYPE_TRIANGLELIST;
 	raymarchPipelineCreateInfo.vertexInputState = vertexInputState;
-	raymarchPipelineCreateInfo.viewportState = viewportState;
 	raymarchPipelineCreateInfo.attachmentInfo = attachmentInfo;
 	raymarchPipelineCreateInfo.blendConstants[0] = 0.0f;
 	raymarchPipelineCreateInfo.blendConstants[1] = 0.0f;
@@ -506,21 +499,17 @@ int main(int argc, char *argv[])
 
 	SDL_free(screenshotPixels);
 
-	Refresh_CommandBuffer *destroyCommandBuffer = Refresh_AcquireCommandBuffer(device, 0);
+	Refresh_QueueDestroyTexture(device, woodTexture);
+	Refresh_QueueDestroyTexture(device, noiseTexture);
+	Refresh_QueueDestroySampler(device, sampler);
 
-	Refresh_QueueDestroyTexture(device, destroyCommandBuffer, woodTexture);
-	Refresh_QueueDestroyTexture(device, destroyCommandBuffer, noiseTexture);
-	Refresh_QueueDestroySampler(device, destroyCommandBuffer, sampler);
+	Refresh_QueueDestroyBuffer(device, vertexBuffer);
+	Refresh_QueueDestroyBuffer(device, screenshotBuffer);
 
-	Refresh_QueueDestroyBuffer(device, destroyCommandBuffer, vertexBuffer);
-	Refresh_QueueDestroyBuffer(device, destroyCommandBuffer, screenshotBuffer);
+	Refresh_QueueDestroyGraphicsPipeline(device, raymarchPipeline);
 
-	Refresh_QueueDestroyGraphicsPipeline(device, destroyCommandBuffer, raymarchPipeline);
-
-	Refresh_QueueDestroyShaderModule(device, destroyCommandBuffer, passthroughVertexShaderModule);
-	Refresh_QueueDestroyShaderModule(device, destroyCommandBuffer, raymarchFragmentShaderModule);
-
-	Refresh_Submit(device, 1, &destroyCommandBuffer);
+	Refresh_QueueDestroyShaderModule(device, passthroughVertexShaderModule);
+	Refresh_QueueDestroyShaderModule(device, raymarchFragmentShaderModule);
 
 	Refresh_DestroyDevice(device);
 

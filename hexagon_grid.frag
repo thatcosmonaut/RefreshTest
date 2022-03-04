@@ -480,6 +480,8 @@ void main()
 {
     vec2 fragCoord = gl_FragCoord.xy;
 
+    fragCoord.y = Uniforms.resolution.y - gl_FragCoord.y;
+
 	// init random seed
     ivec2 q = ivec2(fragCoord);
 
