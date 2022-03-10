@@ -434,7 +434,12 @@ int main(int argc, char *argv[])
 
 			Refresh_CommandBuffer *commandBuffer = Refresh_AcquireCommandBuffer(device, 0);
 
-			Refresh_Texture *texture = Refresh_AcquireSwapchainTexture(device, commandBuffer, window);
+			uint32_t swapchainWidth;
+			uint32_t swapchainHeight;
+			Refresh_Texture *texture = Refresh_AcquireSwapchainTexture(device, commandBuffer, window, &swapchainWidth, &swapchainHeight);
+
+			renderArea.w = swapchainWidth;
+			renderArea.h = swapchainHeight;
 
 			Refresh_ColorAttachmentInfo colorTargetInfo;
 			colorTargetInfo.texture = texture;
