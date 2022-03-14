@@ -254,7 +254,6 @@ int main(int argc, char *argv[])
 	rasterizerState.depthClampEnable = 0;
 	rasterizerState.fillMode = REFRESH_FILLMODE_FILL;
 	rasterizerState.frontFace = REFRESH_FRONTFACE_CLOCKWISE;
-	rasterizerState.lineWidth = 1.0f;
 
 	Refresh_VertexBinding vertexBinding;
 	vertexBinding.binding = 0;
