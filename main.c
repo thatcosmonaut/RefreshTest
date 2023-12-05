@@ -34,20 +34,22 @@ int main(int argc, char *argv[])
 	const int windowWidth = 1280;
 	const int windowHeight = 720;
 
+	uint32_t windowFlags;
+
+	Refresh_Backend backend = Refresh_SelectBackend(REFRESH_BACKEND_VULKAN, &windowFlags);
+
 	SDL_Window *window = SDL_CreateWindow(
 		"Refresh Test",
 		SDL_WINDOWPOS_UNDEFINED,
 		SDL_WINDOWPOS_UNDEFINED,
 		windowWidth,
 		windowHeight,
-		SDL_WINDOW_VULKAN
+		windowFlags
 	);
 
-	Refresh_PresentationParameters presentationParameters;
-	presentationParameters.deviceWindowHandle = window;
-	presentationParameters.presentMode = REFRESH_PRESENTMODE_IMMEDIATE;
+	Refresh_Device *device = Refresh_CreateDevice(1);
 
-	Refresh_Device *device = Refresh_CreateDevice(&presentationParameters, 1);
+	Refresh_ClaimWindow(device, window, REFRESH_PRESENTMODE_MAILBOX);
 
 	bool quit = false;
 
@@ -65,7 +67,7 @@ int main(int argc, char *argv[])
 
 	/* Compile shaders */
 
-	SDL_RWops* file = SDL_RWFromFile("passthrough_vert.spv", "rb");
+	SDL_RWops* file = SDL_RWFromFile("passthrough.vert.refresh", "rb");
 	Sint64 shaderCodeSize = SDL_RWsize(file);
 	uint32_t* byteCode = SDL_malloc(sizeof(uint32_t) * shaderCodeSize);
 	SDL_RWread(file, byteCode, sizeof(uint32_t), shaderCodeSize);
@@ -77,7 +79,7 @@ int main(int argc, char *argv[])
 
 	Refresh_ShaderModule* passthroughVertexShaderModule = Refresh_CreateShaderModule(device, &passthroughVertexShaderModuleCreateInfo);
 
-	file = SDL_RWFromFile("hexagon_grid.spv", "rb");
+	file = SDL_RWFromFile("hexagon_grid.frag.refresh", "rb");
 	shaderCodeSize = SDL_RWsize(file);
 	byteCode = SDL_realloc(byteCode, sizeof(uint32_t) * shaderCodeSize);
 	SDL_RWread(file, byteCode, sizeof(uint32_t), shaderCodeSize);
@@ -93,15 +95,22 @@ int main(int argc, char *argv[])
 
 	/* Load textures */
 
-	Refresh_CommandBuffer* loadCommandBuffer = Refresh_AcquireCommandBuffer(device, 0);
+	Refresh_CommandBuffer* loadCommandBuffer = Refresh_AcquireCommandBuffer(device);
+
+	size_t textureDataLength;
+
+	void* woodTextureData = SDL_LoadFile("woodgrain.png", &textureDataLength);
 
 	int32_t textureWidth, textureHeight, numChannels;
 	uint8_t *woodTexturePixels = Refresh_Image_Load(
-		"woodgrain.png",
+		woodTextureData,
+		textureDataLength,
 		&textureWidth,
 		&textureHeight,
 		&numChannels
 	);
+
+	SDL_free(woodTextureData);
 
 	Refresh_TextureCreateInfo textureCreateInfo;
 	textureCreateInfo.width = textureWidth;
@@ -138,12 +147,17 @@ int main(int argc, char *argv[])
 
 	Refresh_Image_Free(woodTexturePixels);
 
+	void* noiseTextureData = SDL_LoadFile("noise.png", &textureDataLength);
+
 	uint8_t *noiseTexturePixels = Refresh_Image_Load(
-		"noise.png",
+		noiseTextureData,
+		textureDataLength,
 		&textureWidth,
 		&textureHeight,
 		&numChannels
 	);
+
+	SDL_free(noiseTextureData);
 
 	textureCreateInfo.width = textureWidth;
 	textureCreateInfo.height = textureHeight;
@@ -191,7 +205,7 @@ int main(int argc, char *argv[])
 	Refresh_Buffer* vertexBuffer = Refresh_CreateBuffer(device, REFRESH_BUFFERUSAGE_VERTEX_BIT, sizeof(Vertex) * 3);
 	Refresh_SetBufferData(device, loadCommandBuffer, vertexBuffer, 0, vertices, sizeof(Vertex) * 3);
 
-	Refresh_Submit(device, 1, &loadCommandBuffer);
+	Refresh_Submit(device, loadCommandBuffer);
 
 	uint64_t* offsets = SDL_malloc(sizeof(uint64_t));
 	offsets[0] = 0;
@@ -251,7 +265,6 @@ int main(int argc, char *argv[])
 	rasterizerState.depthBiasConstantFactor = 0;
 	rasterizerState.depthBiasEnable = 0;
 	rasterizerState.depthBiasSlopeFactor = 0;
-	rasterizerState.depthClampEnable = 0;
 	rasterizerState.fillMode = REFRESH_FILLMODE_FILL;
 	rasterizerState.frontFace = REFRESH_FRONTFACE_CLOCKWISE;
 
@@ -301,7 +314,6 @@ int main(int argc, char *argv[])
 
 	Refresh_ColorAttachmentDescription colorAttachmentDescription;
 	colorAttachmentDescription.format = Refresh_GetSwapchainFormat(device, window);
-	colorAttachmentDescription.sampleCount = REFRESH_SAMPLECOUNT_1;
 	colorAttachmentDescription.blendState = renderTargetBlendState;
 
 	Refresh_GraphicsPipelineAttachmentInfo attachmentInfo;
@@ -431,7 +443,7 @@ int main(int argc, char *argv[])
 		{
 			// Draw here!
 
-			Refresh_CommandBuffer *commandBuffer = Refresh_AcquireCommandBuffer(device, 0);
+			Refresh_CommandBuffer *commandBuffer = Refresh_AcquireCommandBuffer(device);
 
 			uint32_t swapchainWidth;
 			uint32_t swapchainHeight;
@@ -445,7 +457,6 @@ int main(int argc, char *argv[])
 			colorTargetInfo.depth = 0;
 			colorTargetInfo.layer = 0;
 			colorTargetInfo.level = 0;
-			colorTargetInfo.sampleCount = REFRESH_SAMPLECOUNT_1;
 			colorTargetInfo.loadOp = REFRESH_LOADOP_CLEAR;
 			colorTargetInfo.storeOp = REFRESH_STOREOP_STORE;
 			colorTargetInfo.clearColor = clearColor;
@@ -453,7 +464,6 @@ int main(int argc, char *argv[])
 			Refresh_BeginRenderPass(
 				device,
 				commandBuffer,
-				&renderArea,
 				&colorTargetInfo,
 				1,
 				NULL
@@ -489,14 +499,35 @@ int main(int argc, char *argv[])
 				Refresh_CopyTextureToBuffer(device, commandBuffer, &screenshotSlice, screenshotBuffer);
 			}
 
-			Refresh_Submit(device, 1, &commandBuffer);
+			Refresh_Submit(device, commandBuffer);
 
 			if (screenshotKey == 1)
 			{
 				Refresh_Wait(device);
 				Refresh_TextureFormat swapchainFormat = Refresh_GetSwapchainFormat(device, window);
 				Refresh_GetBufferData(device, screenshotBuffer, screenshotPixels, windowWidth * windowHeight * 4);
-				Refresh_Image_SavePNG("screenshot.png", windowWidth, windowHeight, swapchainFormat == REFRESH_TEXTUREFORMAT_B8G8R8A8, screenshotPixels);
+
+				if (swapchainFormat == REFRESH_TEXTUREFORMAT_B8G8R8A8)
+				{
+					size_t byteCount = windowWidth * windowHeight * 4;
+
+					uint8_t* rgbaPixels = SDL_malloc(byteCount);
+
+					for (int i = 0; i < byteCount; i += 4)
+					{
+						rgbaPixels[i]     = screenshotPixels[i + 2];
+						rgbaPixels[i + 1] = screenshotPixels[i + 1];
+						rgbaPixels[i + 2] = screenshotPixels[i];
+						rgbaPixels[i + 3] = screenshotPixels[i + 3];
+					}
+
+					Refresh_Image_SavePNG("screenshot.png", rgbaPixels, windowWidth, windowHeight);
+					SDL_free(rgbaPixels);
+				}
+				else
+				{
+					Refresh_Image_SavePNG("screenshot.png", screenshotPixels, windowWidth, windowHeight);
+				}
 			}
 		}
 	}
