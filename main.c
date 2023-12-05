@@ -391,6 +391,10 @@ int main(int argc, char *argv[])
 	uint8_t *screenshotPixels = SDL_malloc(sizeof(uint8_t) * windowWidth * windowHeight * 4);
 	Refresh_Buffer *screenshotBuffer = Refresh_CreateBuffer(device, 0, windowWidth * windowHeight * 4);
 
+	double bufferChurnTimer = 0;
+	Refresh_Buffer* testBuffer;
+	Refresh_Buffer* testBufferTwo;
+
 	while (!quit)
 	{
 		SDL_Event event;
@@ -438,6 +442,27 @@ int main(int argc, char *argv[])
 			else
 			{
 				screenshotKey = 0;
+			}
+
+			double bufferChurnTimeBefore = bufferChurnTimer;
+
+			bufferChurnTimer += dt;
+
+			if (bufferChurnTimeBefore <= 1 && bufferChurnTimer > 1)
+			{
+				testBuffer = Refresh_CreateBuffer(device, REFRESH_BUFFERUSAGE_VERTEX_BIT, 128000);
+				testBufferTwo = Refresh_CreateBuffer(device, REFRESH_BUFFERUSAGE_VERTEX_BIT, 128000);
+			}
+			else if (bufferChurnTimeBefore <= 3 && bufferChurnTimer > 3)
+			{
+				Refresh_QueueDestroyBuffer(device, testBuffer);
+				testBuffer = NULL;
+			}
+			else if (bufferChurnTimeBefore <= 5 && bufferChurnTimer > 5)
+			{
+				Refresh_QueueDestroyBuffer(device, testBufferTwo);
+				testBufferTwo = NULL;
+				bufferChurnTimer = 0;
 			}
 		}
 
@@ -548,6 +573,16 @@ int main(int argc, char *argv[])
 
 	Refresh_QueueDestroyBuffer(device, vertexBuffer);
 	Refresh_QueueDestroyBuffer(device, screenshotBuffer);
+
+	if (testBuffer != NULL)
+	{
+		Refresh_QueueDestroyBuffer(device, testBuffer);
+	}
+
+	if (testBufferTwo != NULL)
+	{
+		Refresh_QueueDestroyBuffer(device, testBufferTwo);
+	}
 
 	Refresh_QueueDestroyGraphicsPipeline(device, raymarchPipeline);
 
