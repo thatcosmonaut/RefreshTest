@@ -207,6 +207,8 @@ int main(int argc, char *argv[])
 
 	Refresh_Submit(device, loadCommandBuffer);
 
+	SDL_free(vertices);
+
 	uint64_t* offsets = SDL_malloc(sizeof(uint64_t));
 	offsets[0] = 0;
 
@@ -532,6 +534,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	SDL_free(offsets);
 	SDL_free(screenshotPixels);
 
 	Refresh_QueueDestroyTexture(device, woodTexture);
