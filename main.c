@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 		SDL_WINDOWPOS_UNDEFINED,
 		windowWidth,
 		windowHeight,
-		windowFlags
+		windowFlags | SDL_WINDOW_RESIZABLE
 	);
 
 	Refresh_Device *device = Refresh_CreateDevice(1);
@@ -451,84 +451,89 @@ int main(int argc, char *argv[])
 			uint32_t swapchainHeight;
 			Refresh_Texture *texture = Refresh_AcquireSwapchainTexture(device, commandBuffer, window, &swapchainWidth, &swapchainHeight);
 
-			renderArea.w = swapchainWidth;
-			renderArea.h = swapchainHeight;
-
-			Refresh_ColorAttachmentInfo colorTargetInfo;
-			colorTargetInfo.texture = texture;
-			colorTargetInfo.depth = 0;
-			colorTargetInfo.layer = 0;
-			colorTargetInfo.level = 0;
-			colorTargetInfo.loadOp = REFRESH_LOADOP_CLEAR;
-			colorTargetInfo.storeOp = REFRESH_STOREOP_STORE;
-			colorTargetInfo.clearColor = clearColor;
-
-			Refresh_BeginRenderPass(
-				device,
-				commandBuffer,
-				&colorTargetInfo,
-				1,
-				NULL
-			);
-
-			Refresh_BindGraphicsPipeline(
-				device,
-				commandBuffer,
-				raymarchPipeline
-			);
-
-			raymarchUniforms.time = (float)t;
-
-			uint32_t fragmentParamOffset = Refresh_PushFragmentShaderUniforms(device, commandBuffer, &raymarchUniforms, sizeof(RaymarchUniforms));
-			Refresh_BindVertexBuffers(device, commandBuffer, 0, 1, &vertexBuffer, offsets);
-			Refresh_BindFragmentSamplers(device, commandBuffer, sampleTextures, sampleSamplers);
-			Refresh_DrawPrimitives(device, commandBuffer, 0, 1, 0, fragmentParamOffset);
-
-			Refresh_EndRenderPass(device, commandBuffer);
-
-			if (screenshotKey == 1)
+			if (texture != NULL)
 			{
-				SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "screenshot!");
-				Refresh_TextureSlice screenshotSlice;
-				screenshotSlice.depth = 0;
-				screenshotSlice.layer = 0;
-				screenshotSlice.level = 0;
-				screenshotSlice.rectangle.x = 0;
-				screenshotSlice.rectangle.y = 0;
-				screenshotSlice.rectangle.w = windowWidth;
-				screenshotSlice.rectangle.h = windowHeight;
-				screenshotSlice.texture = texture;
-				Refresh_CopyTextureToBuffer(device, commandBuffer, &screenshotSlice, screenshotBuffer);
-			}
+				renderArea.w = swapchainWidth;
+				renderArea.h = swapchainHeight;
 
-			Refresh_Submit(device, commandBuffer);
+				Refresh_ColorAttachmentInfo colorTargetInfo;
+				colorTargetInfo.texture = texture;
+				colorTargetInfo.depth = 0;
+				colorTargetInfo.layer = 0;
+				colorTargetInfo.level = 0;
+				colorTargetInfo.loadOp = REFRESH_LOADOP_CLEAR;
+				colorTargetInfo.storeOp = REFRESH_STOREOP_STORE;
+				colorTargetInfo.clearColor = clearColor;
 
-			if (screenshotKey == 1)
-			{
-				Refresh_Wait(device);
-				Refresh_TextureFormat swapchainFormat = Refresh_GetSwapchainFormat(device, window);
-				Refresh_GetBufferData(device, screenshotBuffer, screenshotPixels, windowWidth * windowHeight * 4);
+				Refresh_BeginRenderPass(
+					device,
+					commandBuffer,
+					&colorTargetInfo,
+					1,
+					NULL
+				);
 
-				if (swapchainFormat == REFRESH_TEXTUREFORMAT_B8G8R8A8)
+				Refresh_BindGraphicsPipeline(
+					device,
+					commandBuffer,
+					raymarchPipeline
+				);
+
+				raymarchUniforms.time = (float)t;
+				raymarchUniforms.resolutionX = swapchainWidth;
+				raymarchUniforms.resolutionY = swapchainHeight;
+
+				uint32_t fragmentParamOffset = Refresh_PushFragmentShaderUniforms(device, commandBuffer, &raymarchUniforms, sizeof(RaymarchUniforms));
+				Refresh_BindVertexBuffers(device, commandBuffer, 0, 1, &vertexBuffer, offsets);
+				Refresh_BindFragmentSamplers(device, commandBuffer, sampleTextures, sampleSamplers);
+				Refresh_DrawPrimitives(device, commandBuffer, 0, 1, 0, fragmentParamOffset);
+
+				Refresh_EndRenderPass(device, commandBuffer);
+
+				if (screenshotKey == 1)
 				{
-					size_t byteCount = windowWidth * windowHeight * 4;
-
-					uint8_t* rgbaPixels = SDL_malloc(byteCount);
-
-					for (int i = 0; i < byteCount; i += 4)
-					{
-						rgbaPixels[i]     = screenshotPixels[i + 2];
-						rgbaPixels[i + 1] = screenshotPixels[i + 1];
-						rgbaPixels[i + 2] = screenshotPixels[i];
-						rgbaPixels[i + 3] = screenshotPixels[i + 3];
-					}
-
-					Refresh_Image_SavePNG("screenshot.png", rgbaPixels, windowWidth, windowHeight);
-					SDL_free(rgbaPixels);
+					SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "screenshot!");
+					Refresh_TextureSlice screenshotSlice;
+					screenshotSlice.depth = 0;
+					screenshotSlice.layer = 0;
+					screenshotSlice.level = 0;
+					screenshotSlice.rectangle.x = 0;
+					screenshotSlice.rectangle.y = 0;
+					screenshotSlice.rectangle.w = windowWidth;
+					screenshotSlice.rectangle.h = windowHeight;
+					screenshotSlice.texture = texture;
+					Refresh_CopyTextureToBuffer(device, commandBuffer, &screenshotSlice, screenshotBuffer);
 				}
-				else
+
+				Refresh_Submit(device, commandBuffer);
+
+				if (screenshotKey == 1)
 				{
-					Refresh_Image_SavePNG("screenshot.png", screenshotPixels, windowWidth, windowHeight);
+					Refresh_Wait(device);
+					Refresh_TextureFormat swapchainFormat = Refresh_GetSwapchainFormat(device, window);
+					Refresh_GetBufferData(device, screenshotBuffer, screenshotPixels, windowWidth * windowHeight * 4);
+
+					if (swapchainFormat == REFRESH_TEXTUREFORMAT_B8G8R8A8)
+					{
+						size_t byteCount = windowWidth * windowHeight * 4;
+
+						uint8_t* rgbaPixels = SDL_malloc(byteCount);
+
+						for (int i = 0; i < byteCount; i += 4)
+						{
+							rgbaPixels[i]     = screenshotPixels[i + 2];
+							rgbaPixels[i + 1] = screenshotPixels[i + 1];
+							rgbaPixels[i + 2] = screenshotPixels[i];
+							rgbaPixels[i + 3] = screenshotPixels[i + 3];
+						}
+
+						Refresh_Image_SavePNG("screenshot.png", rgbaPixels, windowWidth, windowHeight);
+						SDL_free(rgbaPixels);
+					}
+					else
+					{
+						Refresh_Image_SavePNG("screenshot.png", screenshotPixels, windowWidth, windowHeight);
+					}
 				}
 			}
 		}
